@@ -1,103 +1,125 @@
 use egui::{
-    epaint::Shadow, Color32, CornerRadius, Margin, Stroke, Style, Visuals,
+    epaint::{Shadow, Vertex},
+    Color32, CornerRadius, Margin, Mesh, Pos2, Rect, Shape, Stroke, Style, Visuals,
 };
 
-/// Material 3 (Material You) Design System Tokens for Google Antigravity
-/// Based on https://m3.material.io/styles/color/system/overview
-pub struct Material3Theme;
+/// Antigravity Cosmic & Iridescent Design System (Google Antigravity & Stitch Dark Mode)
+pub struct AntigravityTheme;
 
-impl Material3Theme {
-    // Surface Tonal Elevation (Dark Mode)
-    pub const SURFACE_DIM: Color32 = Color32::from_rgb(15, 17, 23); // #0F1117 Canvas Base
-    pub const SURFACE: Color32 = Color32::from_rgb(20, 23, 31); // #14171F Window Base
-    pub const SURFACE_CONTAINER_LOW: Color32 = Color32::from_rgb(24, 28, 38); // #181C26 Subtle Panels
-    pub const SURFACE_CONTAINER: Color32 = Color32::from_rgb(30, 36, 49); // #1E2431 Standard Cards
-    pub const SURFACE_CONTAINER_HIGH: Color32 = Color32::from_rgb(38, 46, 62); // #262E3E Hovered Cards
-    pub const SURFACE_CONTAINER_HIGHEST: Color32 = Color32::from_rgb(46, 56, 76); // #2E384C Search / Active Elements
+impl AntigravityTheme {
+    // Cosmic Void & Surface Palette
+    pub const VOID_BG: Color32 = Color32::from_rgb(8, 10, 15); // #080A0F Deep Void
+    pub const SURFACE_GLASS: Color32 = Color32::from_rgb(13, 16, 24); // #0D1018 Frosted Glass
+    pub const CARD_BG: Color32 = Color32::from_rgb(17, 21, 32); // #111520 Obsidian Card
+    pub const CARD_HOVER_BG: Color32 = Color32::from_rgb(22, 28, 43); // #161C2B Luminous Card
+    pub const CONTROL_BG: Color32 = Color32::from_rgb(20, 25, 38); // #141926 Inputs & Docks
 
-    // Outlines & Dividers
+    // Iridescent Accents (Prismatic Google Antigravity)
+    pub const IRIS_CYAN: Color32 = Color32::from_rgb(34, 211, 238); // #22D3EE Electric Cyan
     #[allow(dead_code)]
-    pub const OUTLINE: Color32 = Color32::from_rgb(71, 85, 112); // #475570 Focused Outline
-    pub const OUTLINE_VARIANT: Color32 = Color32::from_rgb(42, 50, 68); // #2A3244 Subtle Card Outline
+    pub const IRIS_BLUE: Color32 = Color32::from_rgb(56, 189, 248); // #38BDF8 Sky Glow
+    pub const IRIS_INDIGO: Color32 = Color32::from_rgb(99, 102, 241); // #6366F1 Cosmic Indigo
+    pub const IRIS_VIOLET: Color32 = Color32::from_rgb(168, 85, 247); // #A855F7 Neon Violet
+    pub const IRIS_PINK: Color32 = Color32::from_rgb(244, 63, 94); // #F43F5E Iridescent Rose
 
-    // Primary Accents (Electric Antigravity Cyan / M3 Blue)
-    pub const PRIMARY: Color32 = Color32::from_rgb(56, 189, 248); // #38BDF8
-    pub const ON_PRIMARY: Color32 = Color32::from_rgb(11, 20, 36); // #0B1424 High Contrast Dark
-    pub const PRIMARY_CONTAINER: Color32 = Color32::from_rgb(14, 58, 92); // #0E3A5C Tonal Container
-    pub const ON_PRIMARY_CONTAINER: Color32 = Color32::from_rgb(224, 242, 254); // #E0F2FE
+    // Status Accents
+    pub const SUCCESS_MINT: Color32 = Color32::from_rgb(52, 211, 153); // #34D399 Mint Green
+    pub const ERROR_ROSE: Color32 = Color32::from_rgb(251, 113, 133); // #FB7185 Coral Rose
 
-    // Secondary Accents (Indigo / Neon Purple)
+    // Translucent Tint Overlays
+    pub const TINT_CYAN: Color32 = Color32::from_rgba_premultiplied(34, 211, 238, 22);
+    pub const TINT_VIOLET: Color32 = Color32::from_rgba_premultiplied(168, 85, 247, 22);
+    pub const TINT_PINK: Color32 = Color32::from_rgba_premultiplied(244, 63, 94, 22);
+    pub const TINT_SUCCESS: Color32 = Color32::from_rgba_premultiplied(52, 211, 153, 25);
     #[allow(dead_code)]
-    pub const SECONDARY: Color32 = Color32::from_rgb(165, 180, 252); // #A5B4FC
-    pub const SECONDARY_CONTAINER: Color32 = Color32::from_rgb(49, 46, 129); // #312E81
-    pub const ON_SECONDARY_CONTAINER: Color32 = Color32::from_rgb(224, 231, 255); // #E0E7FF
+    pub const TINT_SURFACE: Color32 = Color32::from_rgba_premultiplied(255, 255, 255, 8);
 
-    // Success (Emerald Green)
-    pub const SUCCESS: Color32 = Color32::from_rgb(52, 211, 153); // #34D399
-    pub const SUCCESS_CONTAINER: Color32 = Color32::from_rgb(6, 78, 59); // #064E3B
-    pub const ON_SUCCESS_CONTAINER: Color32 = Color32::from_rgb(209, 250, 229); // #D1FAE5
+    // Subtle Borders & Outlines
+    pub const BORDER_IDLE: Color32 = Color32::from_rgba_premultiplied(255, 255, 255, 16);
+    pub const BORDER_SUBTLE: Color32 = Color32::from_rgba_premultiplied(148, 163, 184, 30);
+    #[allow(dead_code)]
+    pub const BORDER_FOCUS: Color32 = Color32::from_rgb(56, 189, 248);
 
-    // Error (Crimson)
-    pub const ERROR: Color32 = Color32::from_rgb(248, 113, 113); // #F87171
-    pub const ERROR_CONTAINER: Color32 = Color32::from_rgb(127, 29, 29); // #7F1D1D
-    pub const ON_ERROR_CONTAINER: Color32 = Color32::from_rgb(254, 226, 226); // #FEE2E2
+    // High Legibility Typography
+    pub const TEXT_PRIMARY: Color32 = Color32::from_rgb(248, 250, 252); // #F8FAFC Crisp White
+    pub const TEXT_SECONDARY: Color32 = Color32::from_rgb(148, 163, 184); // #94A3B8 Slate Gray
+    pub const TEXT_MUTED: Color32 = Color32::from_rgb(100, 116, 139); // #64748B Subtle Muted
 
-    // Neutral Text Hierarchy
-    pub const ON_SURFACE: Color32 = Color32::from_rgb(248, 250, 252); // #F8FAFC High Emphasis Title
-    pub const ON_SURFACE_VARIANT: Color32 = Color32::from_rgb(160, 174, 192); // #A0AEC0 Medium Emphasis Body
-    pub const ON_SURFACE_MUTED: Color32 = Color32::from_rgb(100, 116, 139); // #64748B Subtle Hints
-
-    /// Applies Material 3 styling tokens to the egui Context
+    /// Applies the Cosmic Iridescent theme to the egui Context
     pub fn apply(ctx: &egui::Context) {
         let mut visuals = Visuals::dark();
 
-        visuals.override_text_color = Some(Self::ON_SURFACE);
-        visuals.panel_fill = Self::SURFACE_DIM;
-        visuals.window_fill = Self::SURFACE;
-        visuals.extreme_bg_color = Self::SURFACE_CONTAINER_LOW;
+        visuals.override_text_color = Some(Self::TEXT_PRIMARY);
+        visuals.panel_fill = Self::VOID_BG;
+        visuals.window_fill = Self::VOID_BG;
+        visuals.extreme_bg_color = Self::CONTROL_BG;
 
         // Non-interactive widgets
-        visuals.widgets.noninteractive.bg_fill = Self::SURFACE_CONTAINER;
-        visuals.widgets.noninteractive.bg_stroke = Stroke::new(1.0, Self::OUTLINE_VARIANT);
+        visuals.widgets.noninteractive.bg_fill = Self::CARD_BG;
+        visuals.widgets.noninteractive.bg_stroke = Stroke::new(1.0, Self::BORDER_IDLE);
         visuals.widgets.noninteractive.corner_radius = CornerRadius::same(12);
-        visuals.widgets.noninteractive.fg_stroke = Stroke::new(1.0, Self::ON_SURFACE);
+        visuals.widgets.noninteractive.fg_stroke = Stroke::new(1.0, Self::TEXT_PRIMARY);
 
-        // Inactive widgets (buttons, chips)
-        visuals.widgets.inactive.bg_fill = Self::SURFACE_CONTAINER;
-        visuals.widgets.inactive.bg_stroke = Stroke::new(1.0, Self::OUTLINE_VARIANT);
+        // Inactive widgets (chips, inputs)
+        visuals.widgets.inactive.bg_fill = Self::CONTROL_BG;
+        visuals.widgets.inactive.bg_stroke = Stroke::new(1.0, Self::BORDER_SUBTLE);
         visuals.widgets.inactive.corner_radius = CornerRadius::same(12);
-        visuals.widgets.inactive.fg_stroke = Stroke::new(1.0, Self::ON_SURFACE);
+        visuals.widgets.inactive.fg_stroke = Stroke::new(1.0, Self::TEXT_SECONDARY);
 
         // Hovered widgets
-        visuals.widgets.hovered.bg_fill = Self::SURFACE_CONTAINER_HIGH;
-        visuals.widgets.hovered.bg_stroke = Stroke::new(1.0, Self::PRIMARY);
+        visuals.widgets.hovered.bg_fill = Self::CARD_HOVER_BG;
+        visuals.widgets.hovered.bg_stroke = Stroke::new(1.0, Self::IRIS_CYAN);
         visuals.widgets.hovered.corner_radius = CornerRadius::same(12);
-        visuals.widgets.hovered.fg_stroke = Stroke::new(1.0, Color32::WHITE);
+        visuals.widgets.hovered.fg_stroke = Stroke::new(1.0, Self::TEXT_PRIMARY);
 
         // Active / Pressed widgets
-        visuals.widgets.active.bg_fill = Self::SURFACE_CONTAINER_HIGHEST;
-        visuals.widgets.active.bg_stroke = Stroke::new(1.5, Self::PRIMARY);
+        visuals.widgets.active.bg_fill = Self::CARD_HOVER_BG;
+        visuals.widgets.active.bg_stroke = Stroke::new(1.5, Self::IRIS_VIOLET);
         visuals.widgets.active.corner_radius = CornerRadius::same(12);
         visuals.widgets.active.fg_stroke = Stroke::new(1.0, Color32::WHITE);
 
-        // Open menu widgets
-        visuals.widgets.open.bg_fill = Self::SURFACE_CONTAINER;
-        visuals.widgets.open.bg_stroke = Stroke::new(1.0, Self::PRIMARY);
-        visuals.widgets.open.corner_radius = CornerRadius::same(12);
-
         // Selection
-        visuals.selection.bg_fill = Color32::from_rgba_premultiplied(56, 189, 248, 50);
-        visuals.selection.stroke = Stroke::new(1.0, Self::PRIMARY);
+        visuals.selection.bg_fill = Color32::from_rgba_premultiplied(56, 189, 248, 45);
+        visuals.selection.stroke = Stroke::new(1.0, Self::IRIS_CYAN);
 
         visuals.window_shadow = Shadow::NONE;
         visuals.popup_shadow = Shadow::NONE;
 
         let mut style = Style::default();
         style.visuals = visuals;
-        style.spacing.item_spacing = egui::vec2(12.0, 12.0);
-        style.spacing.window_margin = Margin::same(18);
-        style.spacing.button_padding = egui::vec2(16.0, 8.0);
+        style.spacing.item_spacing = egui::vec2(10.0, 10.0);
+        style.spacing.window_margin = Margin::symmetric(24, 16);
+        style.spacing.button_padding = egui::vec2(14.0, 7.0);
 
         ctx.set_style(style);
     }
+
+    /// Paints a glowing horizontal iridescent gradient line (Cyan -> Violet -> Pink)
+    pub fn paint_iridescent_line(painter: &egui::Painter, rect: Rect) {
+        let width = rect.width();
+        let mid_x = rect.min.x + width * 0.5;
+
+        // Left half: Cyan to Violet
+        let mut mesh1 = Mesh::default();
+        let idx1 = mesh1.vertices.len() as u32;
+        mesh1.vertices.push(Vertex { pos: rect.left_top(), uv: Pos2::ZERO, color: Self::IRIS_CYAN });
+        mesh1.vertices.push(Vertex { pos: Pos2::new(mid_x, rect.min.y), uv: Pos2::ZERO, color: Self::IRIS_VIOLET });
+        mesh1.vertices.push(Vertex { pos: Pos2::new(mid_x, rect.max.y), uv: Pos2::ZERO, color: Self::IRIS_VIOLET });
+        mesh1.vertices.push(Vertex { pos: rect.left_bottom(), uv: Pos2::ZERO, color: Self::IRIS_CYAN });
+        mesh1.add_triangle(idx1, idx1 + 1, idx1 + 2);
+        mesh1.add_triangle(idx1, idx1 + 2, idx1 + 3);
+        painter.add(Shape::mesh(mesh1));
+
+        // Right half: Violet to Pink
+        let mut mesh2 = Mesh::default();
+        let idx2 = mesh2.vertices.len() as u32;
+        mesh2.vertices.push(Vertex { pos: Pos2::new(mid_x, rect.min.y), uv: Pos2::ZERO, color: Self::IRIS_VIOLET });
+        mesh2.vertices.push(Vertex { pos: rect.right_top(), uv: Pos2::ZERO, color: Self::IRIS_PINK });
+        mesh2.vertices.push(Vertex { pos: rect.right_bottom(), uv: Pos2::ZERO, color: Self::IRIS_PINK });
+        mesh2.vertices.push(Vertex { pos: Pos2::new(mid_x, rect.max.y), uv: Pos2::ZERO, color: Self::IRIS_VIOLET });
+        mesh2.add_triangle(idx2, idx2 + 1, idx2 + 2);
+        mesh2.add_triangle(idx2, idx2 + 2, idx2 + 3);
+        painter.add(Shape::mesh(mesh2));
+    }
 }
+
