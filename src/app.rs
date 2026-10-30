@@ -13,6 +13,7 @@ use std::sync::Arc;
 enum WorkerCmd {
     FetchCatalog,
     InstallFont { id: String, family: String },
+    FetchPreview { id: String, family: String },
 }
 
 enum WorkerEvent {
@@ -20,6 +21,7 @@ enum WorkerEvent {
     CatalogFailed(String),
     InstallProgress { id: String, state: InstallState },
     InstallDone { id: String, result: Result<(), String> },
+    PreviewLoaded { id: String, bytes: Vec<u8> },
 }
 
 pub struct AntigravityFontsApp {
@@ -28,6 +30,11 @@ pub struct AntigravityFontsApp {
     filtered_indices: Vec<usize>,
     installed_families: HashSet<String>,
     font_states: HashMap<String, InstallState>,
+
+    // Dynamic Font Definitions for real typographic rendering
+    font_definitions: egui::FontDefinitions,
+    registered_fonts: HashSet<String>,
+    requested_previews: HashSet<String>,
 
     // Search and filters
     search_query: String,
@@ -131,20 +138,31 @@ impl AntigravityFontsApp {
                                 }
                             }
                         }
+                        WorkerCmd::FetchPreview { id, family } => {
+                            if let Ok(bytes) = client_clone.fetch_preview_font(&id, &family).await {
+                                let _ = tx_ui_clone.send(WorkerEvent::PreviewLoaded { id, bytes });
+                            }
+                        }
                     }
                 }
             });
         });
+
+        let font_definitions = egui::FontDefinitions::default();
+        let registered_fonts = HashSet::new();
 
         let mut app = Self {
             all_fonts: Vec::new(),
             filtered_indices: Vec::new(),
             installed_families: HashSet::new(),
             font_states: HashMap::new(),
+            font_definitions,
+            registered_fonts,
+            requested_previews: HashSet::new(),
             search_query: String::new(),
             selected_category: CategoryFilter::All,
-            preview_text: "The quick brown fox jumps over the lazy dog 1234567890".to_string(),
-            preview_size: 20.0,
+            preview_text: "DANIELDOBLES".to_string(),
+            preview_size: 24.0,
             status_message: "Initializing Google Fonts catalog...".to_string(),
             is_loading_catalog: true,
             tx_worker,
@@ -201,6 +219,8 @@ impl AntigravityFontsApp {
     /// Handles events coming back from background worker
     fn process_worker_events(&mut self, ctx: &egui::Context) {
         let mut needs_filter = false;
+        let mut fonts_updated = false;
+
         while let Ok(event) = self.rx_ui.try_recv() {
             match event {
                 WorkerEvent::CatalogLoaded(fonts) => {
@@ -223,6 +243,15 @@ impl AntigravityFontsApp {
                             self.installed_families.insert(id.clone());
                             self.font_states.insert(id.clone(), InstallState::Installed);
                             self.status_message = format!("Installed {id} successfully!");
+
+                            // Immediately queue preview fetch for newly installed font
+                            if let Some(font_item) = self.all_fonts.iter().find(|f| f.id == id) {
+                                let _ = self.tx_worker.send(WorkerCmd::FetchPreview {
+                                    id: id.clone(),
+                                    family: font_item.family.clone(),
+                                });
+                            }
+
                             needs_filter = true;
                         }
                         Err(e) => {
@@ -232,8 +261,26 @@ impl AntigravityFontsApp {
                         }
                     }
                 }
+                WorkerEvent::PreviewLoaded { id, bytes } => {
+                    if ttf_parser::Face::parse(&bytes, 0).is_ok() {
+                        self.font_definitions.font_data.insert(
+                            id.clone(),
+                            Arc::new(egui::FontData::from_owned(bytes)),
+                        );
+                        self.font_definitions.families.insert(
+                            egui::FontFamily::Name(Arc::from(id.as_str())),
+                            vec![id.clone(), "Ubuntu-Light".to_owned()],
+                        );
+                        self.registered_fonts.insert(id);
+                        fonts_updated = true;
+                    }
+                }
             }
             ctx.request_repaint();
+        }
+
+        if fonts_updated {
+            ctx.set_fonts(self.font_definitions.clone());
         }
 
         if needs_filter {
@@ -468,7 +515,7 @@ impl AntigravityFontsApp {
                     );
 
                     ui.add(
-                        egui::Slider::new(&mut self.preview_size, 14.0..=40.0)
+                        egui::Slider::new(&mut self.preview_size, 14.0..=48.0)
                             .suffix("px")
                             .show_value(true),
                     );
@@ -623,7 +670,7 @@ impl AntigravityFontsApp {
                                         .strong()
                                         .color(Color32::WHITE),
                                 )
-                                .fill(Color32::from_rgb(14, 116, 144)) // Ocean cyan fill
+                                .fill(Color32::from_rgb(14, 116, 144))
                                 .stroke(Stroke::new(1.0, AntigravityTheme::BORDER_FOCUS))
                                 .corner_radius(CornerRadius::same(8));
 
@@ -640,7 +687,22 @@ impl AntigravityFontsApp {
 
                 ui.add_space(8.0);
 
-                // Live Preview Canvas
+                // Determine Font Family for preview rendering
+                let has_real_font = self.registered_fonts.contains(&font.id);
+                let preview_family = if has_real_font {
+                    egui::FontFamily::Name(Arc::from(font.id.as_str()))
+                } else {
+                    // Queue background download for preview font if not yet requested
+                    if !self.requested_previews.contains(&font.id) {
+                        self.requested_previews.insert(font.id.clone());
+                        let _ = self.tx_worker.send(WorkerCmd::FetchPreview {
+                            id: font.id.clone(),
+                            family: font.family.clone(),
+                        });
+                    }
+                    egui::FontFamily::Proportional
+                };
+
                 let preview_text = if self.preview_text.trim().is_empty() {
                     "The quick brown fox jumps over the lazy dog"
                 } else {
@@ -649,7 +711,7 @@ impl AntigravityFontsApp {
 
                 ui.label(
                     RichText::new(preview_text)
-                        .font(FontId::proportional(self.preview_size))
+                        .font(FontId::new(self.preview_size, preview_family))
                         .color(AntigravityTheme::TEXT_PRIMARY),
                 );
             });

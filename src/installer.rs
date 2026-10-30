@@ -104,6 +104,40 @@ impl FontInstaller {
         }
     }
 
+    /// Finds an existing installed TTF or OTF font file matching the family name or ID.
+    pub fn find_local_font_file(family_id: &str, family_name: &str) -> Option<PathBuf> {
+        let dir = Self::get_user_fonts_dir().ok()?;
+        let id_clean = family_id.to_lowercase().replace(' ', "-");
+        let name_clean = family_name.to_lowercase().replace(' ', "");
+
+        if let Ok(entries) = fs::read_dir(&dir) {
+            let mut candidates = Vec::new();
+            for entry in entries.flatten() {
+                let path = entry.path();
+                let fname = path.file_name()?.to_string_lossy().to_lowercase();
+                if fname.ends_with(".ttf") || fname.ends_with(".otf") {
+                    let fname_no_ext = fname.trim_end_matches(".ttf").trim_end_matches(".otf");
+                    let clean = fname_no_ext.replace('-', "").replace('_', "");
+
+                    if fname.starts_with(&id_clean) || clean.contains(&name_clean) {
+                        candidates.push(path);
+                    }
+                }
+            }
+
+            // Prefer regular or non-bold/italic variants
+            if let Some(reg) = candidates.iter().find(|p| {
+                let s = p.file_name().unwrap_or_default().to_string_lossy().to_lowercase();
+                s.contains("regular") || (!s.contains("bold") && !s.contains("italic") && !s.contains("variable"))
+            }) {
+                return Some(reg.clone());
+            }
+
+            return candidates.into_iter().next();
+        }
+        None
+    }
+
     /// Extracts zip bytes, saves fonts into user directory, and registers them into Windows.
     pub fn install_from_zip(
         zip_bytes: &[u8],
@@ -170,6 +204,23 @@ impl FontInstaller {
         }
 
         Ok(installed_paths)
+    }
+
+    /// Extracts a normalized family slug (e.g. "roboto", "inter") from the TTF/OTF metadata table.
+    #[allow(dead_code)]
+    pub fn extract_family_slug(bytes: &[u8]) -> Option<String> {
+        let face = ttf_parser::Face::parse(bytes, 0).ok()?;
+        for name in face.names() {
+            if name.name_id == 1 {
+                if let Some(s) = name.to_string() {
+                    let clean = s.trim().to_lowercase().replace(' ', "-");
+                    if !clean.is_empty() {
+                        return Some(clean);
+                    }
+                }
+            }
+        }
+        None
     }
 
     /// Extracts the full font name from the TTF/OTF metadata table.
