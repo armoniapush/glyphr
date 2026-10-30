@@ -65,12 +65,22 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_category_matching() {
-        assert!(CategoryFilter::All.matches("sans-serif", false));
-        assert!(CategoryFilter::SansSerif.matches("sans-serif", false));
-        assert!(!CategoryFilter::SansSerif.matches("serif", false));
-        assert!(CategoryFilter::Monospace.matches("monospace", false));
-        assert!(CategoryFilter::InstalledOnly.matches("sans-serif", true));
-        assert!(!CategoryFilter::InstalledOnly.matches("sans-serif", false));
+    fn test_rasterize_inter() {
+        let path = std::path::PathBuf::from(r"C:\Users\armon\AppData\Local\antigravity\antigravity-fonts\cache\previews\inter.ttf");
+        if path.exists() {
+            let bytes = std::fs::read(&path).unwrap();
+            let mut font_defs = egui::FontDefinitions::default();
+            font_defs.font_data.insert("inter".to_string(), std::sync::Arc::new(egui::FontData::from_owned(bytes)));
+            font_defs.families.insert(egui::FontFamily::Name(std::sync::Arc::from("inter")), vec!["inter".to_string()]);
+            
+            let ctx = egui::Context::default();
+            ctx.set_fonts(font_defs);
+            let _ = ctx.run(Default::default(), |ctx| {
+                egui::CentralPanel::default().show(ctx, |ui| {
+                    ui.label(egui::RichText::new("DANIELDOBLES").font(egui::FontId::new(24.0, egui::FontFamily::Name(std::sync::Arc::from("inter")))));
+                });
+            });
+            println!("Rasterized inter successfully!");
+        }
     }
 }

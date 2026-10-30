@@ -33,7 +33,8 @@ pub struct AntigravityFontsApp {
 
     // Dynamic Font Definitions for real typographic rendering
     font_definitions: egui::FontDefinitions,
-    registered_fonts: HashSet<String>,
+    active_fonts: HashSet<String>,
+    pending_fonts: HashSet<String>,
     requested_previews: HashSet<String>,
 
     // Search and filters
@@ -149,7 +150,6 @@ impl AntigravityFontsApp {
         });
 
         let font_definitions = egui::FontDefinitions::default();
-        let registered_fonts = HashSet::new();
 
         let mut app = Self {
             all_fonts: Vec::new(),
@@ -157,7 +157,8 @@ impl AntigravityFontsApp {
             installed_families: HashSet::new(),
             font_states: HashMap::new(),
             font_definitions,
-            registered_fonts,
+            active_fonts: HashSet::new(),
+            pending_fonts: HashSet::new(),
             requested_previews: HashSet::new(),
             search_query: String::new(),
             selected_category: CategoryFilter::All,
@@ -271,7 +272,7 @@ impl AntigravityFontsApp {
                             egui::FontFamily::Name(Arc::from(id.as_str())),
                             vec![id.clone(), "Ubuntu-Light".to_owned()],
                         );
-                        self.registered_fonts.insert(id);
+                        self.pending_fonts.insert(id);
                         fonts_updated = true;
                     }
                 }
@@ -281,6 +282,7 @@ impl AntigravityFontsApp {
 
         if fonts_updated {
             ctx.set_fonts(self.font_definitions.clone());
+            ctx.request_repaint();
         }
 
         if needs_filter {
@@ -687,9 +689,9 @@ impl AntigravityFontsApp {
 
                 ui.add_space(8.0);
 
-                // Determine Font Family for preview rendering
-                let has_real_font = self.registered_fonts.contains(&font.id);
-                let preview_family = if has_real_font {
+                // Determine Font Family for preview rendering safely
+                let is_active = self.active_fonts.contains(&font.id);
+                let preview_family = if is_active {
                     egui::FontFamily::Name(Arc::from(font.id.as_str()))
                 } else {
                     // Queue background download for preview font if not yet requested
@@ -774,6 +776,14 @@ impl AntigravityFontsApp {
 
 impl eframe::App for AntigravityFontsApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        // Promote pending fonts that were registered in previous frame to active
+        if !self.pending_fonts.is_empty() {
+            let drained: Vec<String> = self.pending_fonts.drain().collect();
+            for id in drained {
+                self.active_fonts.insert(id);
+            }
+        }
+
         self.process_worker_events(ctx);
 
         egui::CentralPanel::default().show(ctx, |ui| {

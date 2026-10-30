@@ -29,5 +29,5 @@ if not exist "%EXE_PATH%" (
 )
 
 :: 4. Lanzar nueva sesion limpia en segundo plano
-start "" "%EXE_PATH%"
+start "" /D "%~dp0" "%EXE_PATH%"
 exit /b 0
