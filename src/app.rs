@@ -441,43 +441,41 @@ impl AntigravityFontsApp {
 
     /// Renders Integrated Search & Filter Ribbon
     fn render_integrated_toolbar(&mut self, ui: &mut Ui) {
-        ui.add_space(10.0);
+        ui.add_space(8.0);
 
-        // Row 1: Search Bar & Categories
-        ui.horizontal_wrapped(|ui| {
-            // M3 Search Bar
-            let search_rect = ui.available_rect_before_wrap();
-            let search_w = (search_rect.width() * 0.35).clamp(220.0, 320.0);
-            let height = 36.0;
-            let (rect, _) = ui.allocate_exact_size(vec2(search_w, height), Sense::hover());
+        // Row 1: Search Bar & Categories on a single neat line
+        ui.horizontal(|ui| {
+            // Compact M3 Search Bar
+            let height = 34.0;
+            let (rect, _) = ui.allocate_exact_size(vec2(190.0, height), Sense::hover());
 
             let painter = ui.painter();
             painter.rect_filled(
                 rect,
-                CornerRadius::same(18),
+                CornerRadius::same(17),
                 Material3Theme::SURFACE_CONTAINER_HIGH,
             );
             painter.rect_stroke(
                 rect,
-                CornerRadius::same(18),
+                CornerRadius::same(17),
                 Stroke::new(1.0, Material3Theme::OUTLINE_VARIANT),
                 StrokeKind::Inside,
             );
 
             Material3Theme::paint_search_icon(
                 &painter,
-                Pos2::new(rect.min.x + 18.0, rect.center().y),
+                Pos2::new(rect.min.x + 16.0, rect.center().y),
                 Material3Theme::ON_SURFACE_VARIANT,
             );
 
             let inner_rect = Rect::from_min_max(
-                Pos2::new(rect.min.x + 36.0, rect.min.y + 2.0),
-                Pos2::new(rect.max.x - 30.0, rect.max.y - 2.0),
+                Pos2::new(rect.min.x + 32.0, rect.min.y + 2.0),
+                Pos2::new(rect.max.x - 26.0, rect.max.y - 2.0),
             );
             let mut child_ui = ui.new_child(egui::UiBuilder::new().max_rect(inner_rect));
             let response = child_ui.add(
                 egui::TextEdit::singleline(&mut self.search_query)
-                    .hint_text("Search fonts...")
+                    .hint_text("Search...")
                     .frame(false)
                     .font(FontId::proportional(13.0))
                     .text_color(Material3Theme::ON_SURFACE),
@@ -488,8 +486,8 @@ impl AntigravityFontsApp {
 
             if !self.search_query.is_empty() {
                 let clear_rect = Rect::from_center_size(
-                    Pos2::new(rect.max.x - 16.0, rect.center().y),
-                    vec2(18.0, 18.0),
+                    Pos2::new(rect.max.x - 14.0, rect.center().y),
+                    vec2(16.0, 16.0),
                 );
                 if ui.allocate_rect(clear_rect, Sense::click()).clicked() {
                     self.search_query.clear();
@@ -504,9 +502,9 @@ impl AntigravityFontsApp {
                 );
             }
 
-            ui.add_space(8.0);
+            ui.add_space(6.0);
 
-            // Filter chips
+            // Filter chips on the same row
             let categories = [
                 CategoryFilter::All,
                 CategoryFilter::SansSerif,
@@ -547,7 +545,7 @@ impl AntigravityFontsApp {
 
                 let btn = egui::Button::new(
                     RichText::new(chip_text)
-                        .font(FontId::proportional(12.0))
+                        .font(FontId::proportional(11.5))
                         .color(fg),
                 )
                 .fill(bg)
@@ -561,7 +559,7 @@ impl AntigravityFontsApp {
             }
         });
 
-        ui.add_space(8.0);
+        ui.add_space(6.0);
 
         // Row 2: Specimen Controls Ribbon
         egui::Frame::NONE
@@ -638,13 +636,13 @@ impl AntigravityFontsApp {
             .fill(Material3Theme::SURFACE_CONTAINER)
             .stroke(border_stroke)
             .corner_radius(CornerRadius::same(12))
-            .inner_margin(Margin::symmetric(18, 14))
+            .inner_margin(Margin::symmetric(16, 12))
             .show(ui, |ui| {
                 // Row 1: Header (Font Name, Secondary Metadata, Action Button)
                 ui.horizontal(|ui| {
                     ui.label(
                         RichText::new(&font.family)
-                            .font(FontId::proportional(17.0))
+                            .font(FontId::proportional(16.5))
                             .strong()
                             .color(Material3Theme::ON_SURFACE),
                     );
@@ -669,99 +667,103 @@ impl AntigravityFontsApp {
 
                     ui.label(
                         RichText::new(meta_str)
-                            .font(FontId::proportional(12.0))
+                            .font(FontId::proportional(11.5))
                             .color(Material3Theme::ON_SURFACE_VARIANT),
                     );
 
-                    ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-                        let btn_width = 96.0;
-                        match &current_state {
-                            Some(InstallState::Downloading) => {
-                                let btn = egui::Button::new(
-                                    RichText::new("⏳ Downloading...")
-                                        .font(FontId::proportional(11.0))
-                                        .color(Material3Theme::ON_PRIMARY_CONTAINER),
-                                )
-                                .min_size(vec2(btn_width, 26.0))
-                                .fill(Material3Theme::PRIMARY_CONTAINER)
-                                .corner_radius(CornerRadius::same(13));
-                                ui.add_enabled(false, btn);
-                            }
-                            Some(InstallState::Installing) => {
-                                let btn = egui::Button::new(
-                                    RichText::new("⚡ Registering...")
-                                        .font(FontId::proportional(11.0))
-                                        .color(Material3Theme::ON_PRIMARY_CONTAINER),
-                                )
-                                .min_size(vec2(btn_width, 26.0))
-                                .fill(Material3Theme::PRIMARY_CONTAINER)
-                                .corner_radius(CornerRadius::same(13));
-                                ui.add_enabled(false, btn);
-                            }
-                            Some(InstallState::Error(err)) => {
-                                let retry_btn = egui::Button::new(
-                                    RichText::new("↻ Retry")
-                                        .font(FontId::proportional(11.0))
-                                        .color(Material3Theme::ON_ERROR_CONTAINER),
-                                )
-                                .min_size(vec2(btn_width, 26.0))
-                                .fill(Material3Theme::ERROR_CONTAINER)
-                                .stroke(Stroke::new(1.0, Material3Theme::ERROR))
-                                .corner_radius(CornerRadius::same(13));
+                    // Push action button to right edge WITHOUT with_layout
+                    let btn_w = 92.0;
+                    let avail = ui.available_width();
+                    if avail > btn_w {
+                        ui.add_space(avail - btn_w);
+                    }
 
-                                if ui.add(retry_btn).on_hover_text(err).clicked() {
-                                    let _ = self.tx_worker.send(WorkerCmd::InstallFont {
-                                        id: font.id.clone(),
-                                        family: font.family.clone(),
-                                    });
-                                }
-                            }
-                            _ if is_installed => {
-                                let btn = egui::Button::new(
-                                    RichText::new("✓ Installed")
-                                        .font(FontId::proportional(11.0))
-                                        .strong()
-                                        .color(Material3Theme::ON_SUCCESS_CONTAINER),
-                                )
-                                .min_size(vec2(btn_width, 26.0))
-                                .fill(Material3Theme::SUCCESS_CONTAINER)
-                                .stroke(Stroke::new(1.0, Material3Theme::SUCCESS))
-                                .corner_radius(CornerRadius::same(13));
+                    match &current_state {
+                        Some(InstallState::Downloading) => {
+                            let btn = egui::Button::new(
+                                RichText::new("⏳ Downloading")
+                                    .font(FontId::proportional(10.5))
+                                    .color(Material3Theme::ON_PRIMARY_CONTAINER),
+                            )
+                            .min_size(vec2(btn_w, 24.0))
+                            .fill(Material3Theme::PRIMARY_CONTAINER)
+                            .corner_radius(CornerRadius::same(12));
+                            ui.add_enabled(false, btn);
+                        }
+                        Some(InstallState::Installing) => {
+                            let btn = egui::Button::new(
+                                RichText::new("⚡ Installing")
+                                    .font(FontId::proportional(10.5))
+                                    .color(Material3Theme::ON_PRIMARY_CONTAINER),
+                            )
+                            .min_size(vec2(btn_w, 24.0))
+                            .fill(Material3Theme::PRIMARY_CONTAINER)
+                            .corner_radius(CornerRadius::same(12));
+                            ui.add_enabled(false, btn);
+                        }
+                        Some(InstallState::Error(err)) => {
+                            let retry_btn = egui::Button::new(
+                                RichText::new("↻ Retry")
+                                    .font(FontId::proportional(10.5))
+                                    .color(Material3Theme::ON_ERROR_CONTAINER),
+                            )
+                            .min_size(vec2(btn_w, 24.0))
+                            .fill(Material3Theme::ERROR_CONTAINER)
+                            .stroke(Stroke::new(1.0, Material3Theme::ERROR))
+                            .corner_radius(CornerRadius::same(12));
 
-                                if ui
-                                    .add(btn)
-                                    .on_hover_text("Click to re-install or repair font in Windows")
-                                    .clicked()
-                                {
-                                    let _ = self.tx_worker.send(WorkerCmd::InstallFont {
-                                        id: font.id.clone(),
-                                        family: font.family.clone(),
-                                    });
-                                }
-                            }
-                            _ => {
-                                let btn = egui::Button::new(
-                                    RichText::new("↓ Install")
-                                        .font(FontId::proportional(11.0))
-                                        .strong()
-                                        .color(Material3Theme::ON_PRIMARY),
-                                )
-                                .min_size(vec2(btn_width, 26.0))
-                                .fill(Material3Theme::PRIMARY)
-                                .corner_radius(CornerRadius::same(13));
-
-                                if ui.add(btn).clicked() {
-                                    let _ = self.tx_worker.send(WorkerCmd::InstallFont {
-                                        id: font.id.clone(),
-                                        family: font.family.clone(),
-                                    });
-                                }
+                            if ui.add(retry_btn).on_hover_text(err).clicked() {
+                                let _ = self.tx_worker.send(WorkerCmd::InstallFont {
+                                    id: font.id.clone(),
+                                    family: font.family.clone(),
+                                });
                             }
                         }
-                    });
+                        _ if is_installed => {
+                            let btn = egui::Button::new(
+                                RichText::new("✓ Installed")
+                                    .font(FontId::proportional(10.5))
+                                    .strong()
+                                    .color(Material3Theme::ON_SUCCESS_CONTAINER),
+                            )
+                            .min_size(vec2(btn_w, 24.0))
+                            .fill(Material3Theme::SUCCESS_CONTAINER)
+                            .stroke(Stroke::new(1.0, Material3Theme::SUCCESS))
+                            .corner_radius(CornerRadius::same(12));
+
+                            if ui
+                                .add(btn)
+                                .on_hover_text("Click to re-install or repair font in Windows")
+                                .clicked()
+                            {
+                                let _ = self.tx_worker.send(WorkerCmd::InstallFont {
+                                    id: font.id.clone(),
+                                    family: font.family.clone(),
+                                });
+                            }
+                        }
+                        _ => {
+                            let btn = egui::Button::new(
+                                RichText::new("↓ Install")
+                                    .font(FontId::proportional(11.0))
+                                    .strong()
+                                    .color(Material3Theme::ON_PRIMARY),
+                            )
+                            .min_size(vec2(btn_w, 24.0))
+                            .fill(Material3Theme::PRIMARY)
+                            .corner_radius(CornerRadius::same(12));
+
+                            if ui.add(btn).clicked() {
+                                let _ = self.tx_worker.send(WorkerCmd::InstallFont {
+                                    id: font.id.clone(),
+                                    family: font.family.clone(),
+                                });
+                            }
+                        }
+                    }
                 });
 
-                ui.add_space(10.0);
+                ui.add_space(8.0);
 
                 // Row 2: Specimen Typography Preview Line
                 let is_active = self.active_fonts.contains(&font.id);
@@ -820,7 +822,8 @@ impl AntigravityFontsApp {
             return;
         }
 
-        let row_height = self.preview_size + 68.0;
+        let card_spacing = 8.0;
+        let row_height = self.preview_size * 1.25 + 56.0 + card_spacing;
         ScrollArea::vertical()
             .auto_shrink([false; 2])
             .show_rows(ui, row_height, total_count, |ui, row_range| {
@@ -828,7 +831,7 @@ impl AntigravityFontsApp {
                     if let Some(&font_idx) = self.filtered_indices.get(i) {
                         if let Some(font) = self.all_fonts.get(font_idx).cloned() {
                             self.render_font_card(ui, &font);
-                            ui.add_space(8.0);
+                            ui.add_space(card_spacing);
                         }
                     }
                 }
@@ -852,14 +855,12 @@ impl eframe::App for AntigravityFontsApp {
             .frame(egui::Frame::NONE.fill(Material3Theme::SURFACE))
             .show(ctx, |ui| {
                 self.render_custom_title_bar(ui);
-                ui.horizontal(|ui| {
-                    ui.add_space(16.0);
-                    ui.vertical(|ui| {
+                egui::Frame::NONE
+                    .inner_margin(Margin::symmetric(16, 0))
+                    .show(ui, |ui| {
                         self.render_integrated_toolbar(ui);
                         self.render_font_list(ui);
                     });
-                    ui.add_space(16.0);
-                });
             });
     }
 }
