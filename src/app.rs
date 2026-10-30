@@ -447,11 +447,13 @@ impl AntigravityFontsApp {
     fn render_integrated_toolbar(&mut self, ui: &mut Ui) {
         ui.add_space(8.0);
 
-        // Row 1: Search Bar & Categories on a single neat line
+        // Row 1: Search Bar & Categories with responsive horizontal scrolling
         ui.horizontal(|ui| {
+            ui.spacing_mut().item_spacing = vec2(6.0, 0.0);
+
             // Compact M3 Search Bar
             let height = 34.0;
-            let (rect, _) = ui.allocate_exact_size(vec2(190.0, height), Sense::hover());
+            let (rect, _) = ui.allocate_exact_size(vec2(180.0, height), Sense::hover());
 
             let painter = ui.painter();
             painter.rect_filled(
@@ -506,66 +508,71 @@ impl AntigravityFontsApp {
                 );
             }
 
-            ui.add_space(6.0);
+            // Horizontally scrollable chip row (never clips on narrow screens)
+            ScrollArea::horizontal()
+                .auto_shrink([false; 2])
+                .scroll_bar_visibility(egui::scroll_area::ScrollBarVisibility::AlwaysHidden)
+                .show(ui, |ui| {
+                    ui.spacing_mut().item_spacing = vec2(6.0, 0.0);
 
-            // Filter chips on the same row
-            let categories = [
-                CategoryFilter::All,
-                CategoryFilter::SansSerif,
-                CategoryFilter::Serif,
-                CategoryFilter::Display,
-                CategoryFilter::Handwriting,
-                CategoryFilter::Monospace,
-                CategoryFilter::InstalledOnly,
-            ];
+                    let categories = [
+                        CategoryFilter::All,
+                        CategoryFilter::SansSerif,
+                        CategoryFilter::Serif,
+                        CategoryFilter::Display,
+                        CategoryFilter::Handwriting,
+                        CategoryFilter::Monospace,
+                        CategoryFilter::InstalledOnly,
+                    ];
 
-            for cat in categories {
-                let is_selected = self.selected_category == cat;
-                let label = if cat == CategoryFilter::InstalledOnly {
-                    format!("Installed ({})", self.installed_families.len())
-                } else {
-                    cat.as_str().to_string()
-                };
+                    for cat in categories {
+                        let is_selected = self.selected_category == cat;
+                        let label = if cat == CategoryFilter::InstalledOnly {
+                            format!("Installed ({})", self.installed_families.len())
+                        } else {
+                            cat.as_str().to_string()
+                        };
 
-                let chip_text = if is_selected {
-                    format!("✓ {label}")
-                } else {
-                    label
-                };
+                        let chip_text = if is_selected {
+                            format!("✓ {label}")
+                        } else {
+                            label
+                        };
 
-                let (bg, stroke, fg) = if is_selected {
-                    (
-                        Material3Theme::SECONDARY_CONTAINER,
-                        Material3Theme::PRIMARY,
-                        Material3Theme::ON_SECONDARY_CONTAINER,
-                    )
-                } else {
-                    (
-                        Material3Theme::SURFACE_CONTAINER_LOW,
-                        Material3Theme::OUTLINE_VARIANT,
-                        Material3Theme::ON_SURFACE_VARIANT,
-                    )
-                };
+                        let (bg, stroke, fg) = if is_selected {
+                            (
+                                Material3Theme::SECONDARY_CONTAINER,
+                                Material3Theme::PRIMARY,
+                                Material3Theme::ON_SECONDARY_CONTAINER,
+                            )
+                        } else {
+                            (
+                                Material3Theme::SURFACE_CONTAINER_LOW,
+                                Material3Theme::OUTLINE_VARIANT,
+                                Material3Theme::ON_SURFACE_VARIANT,
+                            )
+                        };
 
-                let btn = egui::Button::new(
-                    RichText::new(chip_text)
-                        .font(FontId::proportional(11.5))
-                        .color(fg),
-                )
-                .fill(bg)
-                .stroke(Stroke::new(1.0, stroke))
-                .corner_radius(CornerRadius::same(8));
+                        let btn = egui::Button::new(
+                            RichText::new(chip_text)
+                                .font(FontId::proportional(11.5))
+                                .color(fg),
+                        )
+                        .fill(bg)
+                        .stroke(Stroke::new(1.0, stroke))
+                        .corner_radius(CornerRadius::same(8));
 
-                if ui.add(btn).clicked() {
-                    self.selected_category = cat;
-                    self.apply_filters();
-                }
-            }
+                        if ui.add(btn).clicked() {
+                            self.selected_category = cat;
+                            self.apply_filters();
+                        }
+                    }
+                });
         });
 
         ui.add_space(6.0);
 
-        // Row 2: Specimen Controls Ribbon
+        // Row 2: Specimen Controls Ribbon (Responsive fluid width)
         egui::Frame::NONE
             .fill(Material3Theme::SURFACE_CONTAINER_LOW)
             .stroke(Stroke::new(1.0, Material3Theme::OUTLINE_VARIANT))
@@ -573,15 +580,20 @@ impl AntigravityFontsApp {
             .inner_margin(Margin::symmetric(14, 6))
             .show(ui, |ui| {
                 ui.horizontal(|ui| {
+                    ui.spacing_mut().item_spacing = vec2(8.0, 0.0);
+
                     ui.label(
                         RichText::new("Specimen:")
                             .font(FontId::proportional(12.0))
                             .color(Material3Theme::ON_SURFACE_VARIANT),
                     );
 
+                    let avail_w = ui.available_width();
+                    let desired_input_w = (avail_w - 320.0).clamp(120.0, 260.0);
+
                     ui.add(
                         egui::TextEdit::singleline(&mut self.preview_text)
-                            .desired_width(200.0)
+                            .desired_width(desired_input_w)
                             .font(FontId::proportional(13.0))
                             .text_color(Material3Theme::ON_SURFACE),
                     );
@@ -608,7 +620,7 @@ impl AntigravityFontsApp {
                         }
                     }
 
-                    ui.add_space(10.0);
+                    ui.add_space(6.0);
 
                     ui.label(
                         RichText::new("Size:")
@@ -687,111 +699,16 @@ impl AntigravityFontsApp {
             .inner_margin(Margin::symmetric(16, 12))
             .show(ui, |ui| {
                 // Row 1: Header (Font Name, Secondary Metadata, Quick Micro-Actions, Action Button)
-                ui.horizontal(|ui| {
-                    ui.label(
-                        RichText::new(&font.family)
-                            .font(FontId::proportional(16.5))
-                            .strong()
-                            .color(Material3Theme::ON_SURFACE),
-                    );
+                let header_h = 26.0;
+                let (header_rect, _) = ui.allocate_exact_size(vec2(ui.available_width(), header_h), Sense::hover());
+                let mut header_ui = ui.new_child(egui::UiBuilder::new().max_rect(header_rect));
 
-                    ui.add_space(8.0);
+                // 1. Right-to-Left Action Cluster (Docks precisely to the right edge with 0px overflow)
+                let right_end_x = header_ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+                    ui.spacing_mut().item_spacing = vec2(6.0, 0.0);
 
-                    let variants_count = font.variants.len();
-                    let styles_text = if variants_count == 1 {
-                        "1 style".to_string()
-                    } else {
-                        format!("{variants_count} styles")
-                    };
-
-                    let meta_str = if font.popularity > 0 {
-                        format!(
-                            "{}  •  {}  •  #{}",
-                            font.category, styles_text, font.popularity
-                        )
-                    } else {
-                        format!("{}  •  {}", font.category, styles_text)
-                    };
-
-                    ui.label(
-                        RichText::new(meta_str)
-                            .font(FontId::proportional(11.5))
-                            .color(Material3Theme::ON_SURFACE_VARIANT),
-                    );
-
-                    // Right side: Micro-actions + Install Button
-                    let total_actions_w = 216.0;
-                    let avail = ui.available_width();
-                    if avail > total_actions_w {
-                        ui.add_space(avail - total_actions_w);
-                    }
-
-                    // Micro-action 1: Copy CSS declaration
-                    let css_fg = Material3Theme::lerp_color(
-                        Material3Theme::ON_SURFACE_MUTED,
-                        Material3Theme::ON_SURFACE,
-                        hover_t,
-                    );
-                    let css_btn = egui::Button::new(
-                        RichText::new("📋 CSS")
-                            .font(FontId::proportional(10.5))
-                            .color(css_fg),
-                    )
-                    .min_size(vec2(52.0, 24.0))
-                    .fill(Material3Theme::SURFACE_CONTAINER_LOW)
-                    .stroke(Stroke::new(1.0, Material3Theme::OUTLINE_VARIANT))
-                    .corner_radius(CornerRadius::same(8));
-
-                    if ui
-                        .add(css_btn)
-                        .on_hover_text("Copy font-family CSS declaration")
-                        .clicked()
-                    {
-                        let fallback = match font.category.as_str() {
-                            "serif" => "serif",
-                            "monospace" => "monospace",
-                            "handwriting" => "cursive",
-                            "display" => "sans-serif",
-                            _ => "sans-serif",
-                        };
-                        let css_rule = format!("font-family: '{}', {};", font.family, fallback);
-                        ui.ctx().copy_text(css_rule.clone());
-                        self.toast_notification = Some((
-                            format!("Copied: {css_rule}"),
-                            std::time::Instant::now(),
-                        ));
-                    }
-
-                    // Micro-action 2: Google Fonts specimen link
-                    let web_fg = Material3Theme::lerp_color(
-                        Material3Theme::ON_SURFACE_MUTED,
-                        Material3Theme::PRIMARY,
-                        hover_t,
-                    );
-                    let web_btn = egui::Button::new(
-                        RichText::new("↗ Web")
-                            .font(FontId::proportional(10.5))
-                            .color(web_fg),
-                    )
-                    .min_size(vec2(52.0, 24.0))
-                    .fill(Material3Theme::SURFACE_CONTAINER_LOW)
-                    .stroke(Stroke::new(1.0, Material3Theme::OUTLINE_VARIANT))
-                    .corner_radius(CornerRadius::same(8));
-
-                    let web_url = format!(
-                        "https://fonts.google.com/specimen/{}",
-                        font.family.replace(' ', "+")
-                    );
-                    if ui
-                        .add(web_btn)
-                        .on_hover_text("Open full specimen & license on Google Fonts")
-                        .clicked()
-                    {
-                        ui.ctx().open_url(egui::OpenUrl::new_tab(web_url));
-                    }
-
-                    // Main Install / Status Button
-                    let btn_w = 92.0;
+                    // Main Install / Status Button (anchored directly to right edge)
+                    let btn_w = 88.0;
                     match &current_state {
                         Some(InstallState::Downloading) => {
                             let time = ui.input(|i| i.time);
@@ -803,7 +720,7 @@ impl AntigravityFontsApp {
                             );
                             let btn = egui::Button::new(
                                 RichText::new("⏳ Downloading")
-                                    .font(FontId::proportional(10.5))
+                                    .font(FontId::proportional(10.0))
                                     .color(Material3Theme::ON_PRIMARY_CONTAINER),
                             )
                             .min_size(vec2(btn_w, 24.0))
@@ -821,7 +738,7 @@ impl AntigravityFontsApp {
                             );
                             let btn = egui::Button::new(
                                 RichText::new("⚡ Installing")
-                                    .font(FontId::proportional(10.5))
+                                    .font(FontId::proportional(10.0))
                                     .color(Material3Theme::ON_PRIMARY_CONTAINER),
                             )
                             .min_size(vec2(btn_w, 24.0))
@@ -888,6 +805,116 @@ impl AntigravityFontsApp {
                                 });
                             }
                         }
+                    }
+
+                    // Only show secondary actions (Web & CSS) if total header width >= 440px
+                    if header_rect.width() >= 440.0 {
+                        // Micro-action 2: Google Fonts specimen link
+                        let web_fg = Material3Theme::lerp_color(
+                            Material3Theme::ON_SURFACE_MUTED,
+                            Material3Theme::PRIMARY,
+                            hover_t,
+                        );
+                        let web_btn = egui::Button::new(
+                            RichText::new("↗ Web")
+                                .font(FontId::proportional(10.5))
+                                .color(web_fg),
+                        )
+                        .min_size(vec2(48.0, 24.0))
+                        .fill(Material3Theme::SURFACE_CONTAINER_LOW)
+                        .stroke(Stroke::new(1.0, Material3Theme::OUTLINE_VARIANT))
+                        .corner_radius(CornerRadius::same(8));
+
+                        let web_url = format!(
+                            "https://fonts.google.com/specimen/{}",
+                            font.family.replace(' ', "+")
+                        );
+                        if ui
+                            .add(web_btn)
+                            .on_hover_text("Open full specimen & license on Google Fonts")
+                            .clicked()
+                        {
+                            ui.ctx().open_url(egui::OpenUrl::new_tab(web_url));
+                        }
+
+                        // Micro-action 1: Copy CSS declaration
+                        let css_fg = Material3Theme::lerp_color(
+                            Material3Theme::ON_SURFACE_MUTED,
+                            Material3Theme::ON_SURFACE,
+                            hover_t,
+                        );
+                        let css_btn = egui::Button::new(
+                            RichText::new("📋 CSS")
+                                .font(FontId::proportional(10.5))
+                                .color(css_fg),
+                        )
+                        .min_size(vec2(48.0, 24.0))
+                        .fill(Material3Theme::SURFACE_CONTAINER_LOW)
+                        .stroke(Stroke::new(1.0, Material3Theme::OUTLINE_VARIANT))
+                        .corner_radius(CornerRadius::same(8));
+
+                        if ui
+                            .add(css_btn)
+                            .on_hover_text("Copy font-family CSS declaration")
+                            .clicked()
+                        {
+                            let fallback = match font.category.as_str() {
+                                "serif" => "serif",
+                                "monospace" => "monospace",
+                                "handwriting" => "cursive",
+                                "display" => "sans-serif",
+                                _ => "sans-serif",
+                            };
+                            let css_rule = format!("font-family: '{}', {};", font.family, fallback);
+                            ui.ctx().copy_text(css_rule.clone());
+                            self.toast_notification = Some((
+                                format!("Copied: {css_rule}"),
+                                std::time::Instant::now(),
+                            ));
+                        }
+                    }
+
+                    ui.min_rect().min.x
+                }).inner;
+
+                // 2. Left-to-Right Title & Metadata (Strictly bounded to never collide with action cluster)
+                let left_max_x = (right_end_x - 12.0).max(header_rect.min.x + 80.0);
+                let left_rect = Rect::from_min_max(
+                    header_rect.min,
+                    Pos2::new(left_max_x, header_rect.max.y),
+                );
+                let mut left_ui = ui.new_child(egui::UiBuilder::new().max_rect(left_rect));
+
+                left_ui.with_layout(Layout::left_to_right(Align::Center), |ui| {
+                    ui.spacing_mut().item_spacing = vec2(8.0, 0.0);
+
+                    ui.label(
+                        RichText::new(&font.family)
+                            .font(FontId::proportional(16.0))
+                            .strong()
+                            .color(Material3Theme::ON_SURFACE),
+                    );
+
+                    let variants_count = font.variants.len();
+                    let styles_text = if variants_count == 1 {
+                        "1 style".to_string()
+                    } else {
+                        format!("{variants_count} styles")
+                    };
+
+                    let meta_str = if font.popularity > 0 {
+                        format!("{}  •  {}  •  #{}", font.category, styles_text, font.popularity)
+                    } else {
+                        format!("{}  •  {}", font.category, styles_text)
+                    };
+
+                    // Only show metadata if available space permits
+                    if ui.available_width() > 80.0 {
+                        ui.label(
+                            RichText::new(meta_str)
+                                .font(FontId::proportional(11.5))
+                                .color(Material3Theme::ON_SURFACE_VARIANT),
+                        );
                     }
                 });
 
