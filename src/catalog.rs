@@ -24,7 +24,7 @@ impl CatalogClient {
 
         let client = reqwest::Client::builder()
             .timeout(Duration::from_secs(20))
-            .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+            .user_agent("AntigravityFonts/0.1.0")
             .build()
             .unwrap_or_default();
 
@@ -33,6 +33,18 @@ impl CatalogClient {
             cache_path,
             previews_dir,
         }
+    }
+
+    /// Checks if raw byte slice starts with valid TrueType or OpenType magic headers.
+    pub fn is_valid_truetype(bytes: &[u8]) -> bool {
+        if bytes.len() < 4 {
+            return false;
+        }
+        let magic = &bytes[0..4];
+        magic == [0x00, 0x01, 0x00, 0x00]
+            || magic == b"OTTO"
+            || magic == b"true"
+            || magic == b"typ1"
     }
 
     /// Loads fonts from disk cache if present and valid.
@@ -112,7 +124,7 @@ impl CatalogClient {
         Ok(bytes.to_vec())
     }
 
-    /// Fetches and caches a single regular TTF for live preview rendering.
+    /// Fetches and caches a genuine TTF for live preview rendering.
     pub async fn fetch_preview_font(
         &self,
         font_id: &str,
@@ -123,8 +135,11 @@ impl CatalogClient {
         // 1. Check local preview cache
         if preview_path.exists() {
             if let Ok(bytes) = fs::read(&preview_path) {
-                if !bytes.is_empty() {
+                if Self::is_valid_truetype(&bytes) && ttf_parser::Face::parse(&bytes, 0).is_ok() {
                     return Ok(bytes);
+                } else {
+                    // Remove stale or corrupted cache file
+                    let _ = fs::remove_file(&preview_path);
                 }
             }
         }
@@ -132,53 +147,33 @@ impl CatalogClient {
         // 2. Check if already installed locally in user fonts folder
         if let Some(local_path) = crate::installer::FontInstaller::find_local_font_file(font_id, family_name) {
             if let Ok(bytes) = fs::read(&local_path) {
-                if !bytes.is_empty() {
+                if Self::is_valid_truetype(&bytes) && ttf_parser::Face::parse(&bytes, 0).is_ok() {
                     return Ok(bytes);
                 }
             }
         }
 
-        // 3. Fetch from Google Fonts CSS API
-        let encoded_family = family_name.replace(' ', "+");
-        let css_url = format!("https://fonts.googleapis.com/css2?family={encoded_family}");
-
-        if let Ok(resp) = self.client.get(&css_url).send().await {
-            if let Ok(css) = resp.text().await {
-                if let Some(start_idx) = css.find("url(") {
-                    let rest = &css[start_idx + 4..];
-                    if let Some(end_idx) = rest.find(')') {
-                        let ttf_url = rest[..end_idx].trim().trim_matches('"').trim_matches('\'');
-                        if ttf_url.starts_with("https://") {
-                            if let Ok(ttf_resp) = self.client.get(ttf_url).send().await {
-                                if let Ok(bytes) = ttf_resp.bytes().await {
-                                    if !bytes.is_empty() {
-                                        let _ = fs::create_dir_all(&self.previews_dir);
-                                        let _ = fs::write(&preview_path, &bytes);
-                                        return Ok(bytes.to_vec());
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        // 3. Fallback: GWFH font detail API
+        // 3. Query GWFH font detail API to get the genuine TTF CDN link
         let detail_url = format!("https://gwfh.mranftl.com/api/fonts/{font_id}");
         if let Ok(resp) = self.client.get(&detail_url).send().await {
             if let Ok(val) = resp.json::<serde_json::Value>().await {
                 if let Some(variants) = val.get("variants").and_then(|v| v.as_array()) {
+                    // Prefer "regular", "400", or the first available variant
                     let regular_variant = variants
                         .iter()
-                        .find(|v| v.get("id").and_then(|i| i.as_str()) == Some("regular"))
+                        .find(|v| {
+                            let id_str = v.get("id").and_then(|i| i.as_str()).unwrap_or("");
+                            id_str == "regular" || id_str == "400"
+                        })
                         .or_else(|| variants.first());
 
                     if let Some(v) = regular_variant {
                         if let Some(ttf_url) = v.get("ttf").and_then(|u| u.as_str()) {
                             if let Ok(ttf_resp) = self.client.get(ttf_url).send().await {
                                 if let Ok(bytes) = ttf_resp.bytes().await {
-                                    if !bytes.is_empty() {
+                                    if Self::is_valid_truetype(&bytes)
+                                        && ttf_parser::Face::parse(&bytes, 0).is_ok()
+                                    {
                                         let _ = fs::create_dir_all(&self.previews_dir);
                                         let _ = fs::write(&preview_path, &bytes);
                                         return Ok(bytes.to_vec());
@@ -191,6 +186,6 @@ impl CatalogClient {
             }
         }
 
-        Err(format!("Could not fetch preview font for {family_name}"))
+        Err(format!("Could not fetch genuine TTF font for {family_name}"))
     }
 }
