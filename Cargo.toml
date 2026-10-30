@@ -1,8 +1,8 @@
 [package]
-name = "antigravity-fonts"
+name = "glyphr"
 version = "0.1.0"
 edition = "2021"
-description = "Ultra-lightweight Google Fonts search, preview & silent installer with Antigravity UI"
+description = "Ultra-lightweight Google Fonts discovery & silent desktop engine"
 authors = ["Armon"]
 
 [dependencies]

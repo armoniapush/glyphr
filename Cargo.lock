@@ -72,23 +72,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "antigravity-fonts"
-version = "0.1.0"
-dependencies = [
- "directories",
- "eframe",
- "egui",
- "reqwest",
- "serde",
- "serde_json",
- "tokio",
- "ttf-parser",
- "windows-sys 0.59.0",
- "winreg",
- "zip",
-]
-
-[[package]]
 name = "arbitrary"
 version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -958,6 +941,23 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2c4ee00b289aba7a9e5306d57c2d05499b2e5dc427f84ac708bd2c090212cf3e"
 dependencies = [
  "gl_generator",
+]
+
+[[package]]
+name = "glyphr"
+version = "0.1.0"
+dependencies = [
+ "directories",
+ "eframe",
+ "egui",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "tokio",
+ "ttf-parser",
+ "windows-sys 0.59.0",
+ "winreg",
+ "zip",
 ]
 
 [[package]]

@@ -338,21 +338,29 @@ impl AntigravityFontsApp {
             ui.painter().text(
                 logo_rect.center(),
                 Align2::CENTER_CENTER,
-                "AG",
-                FontId::proportional(11.0),
-                Material3Theme::ON_PRIMARY_CONTAINER,
+                "G",
+                FontId::proportional(12.5),
+                Material3Theme::PRIMARY,
             );
 
             ui.add_space(24.0);
 
             ui.label(
-                RichText::new("Antigravity Fonts")
-                    .font(FontId::proportional(13.5))
+                RichText::new("Glyphr")
+                    .font(FontId::proportional(14.0))
                     .strong()
                     .color(Material3Theme::ON_SURFACE),
             );
 
             ui.add_space(4.0);
+
+            ui.label(
+                RichText::new("— The Google Fonts Engine")
+                    .font(FontId::proportional(11.5))
+                    .color(Material3Theme::ON_SURFACE_VARIANT),
+            );
+
+            ui.add_space(6.0);
 
             let (status_color, status_text) = if self.is_loading_catalog {
                 (Material3Theme::PRIMARY, "Syncing...")

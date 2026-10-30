@@ -1,22 +1,22 @@
-# Antigravity Fonts ⚡
+# Glyphr ⚡ — The Google Fonts Engine
 
 An ultra-lightweight, high-performance desktop application written in **Rust** designed to search, preview, and automatically install Google Fonts onto Windows without manual downloading, ZIP extraction, or administrator prompts.
 
-The interface is inspired by the **[Google Antigravity](https://antigravity.google)** design language: cosmic dark surfaces, electric cyan & indigo accents, crisp pill badges, and real-time responsiveness.
+The interface combines **Material Design 3** surfaces with cosmic dark aesthetics: deep obsidian surfaces, electric cyan & violet accents, crisp pill badges, smooth 60 FPS micro-interactions, and real-time responsiveness.
 
 ---
 
 ## ✨ Features
 
-- **Ultra-Lightweight & Fast**: Compiled native binary is only **~7.6 MB** with an instant startup time (<50 ms) and minimal RAM usage (~30 MB).
-- **1,950+ Google Fonts Directory**: Instant offline-cached catalog with real-time keystroke filtering across family names, categories, and styles.
+- **Ultra-Lightweight & Fast**: Compiled native binary is only **~7.8 MB** with an instant startup time (<50 ms) and minimal RAM usage (~30 MB).
+- **1,960+ Google Fonts Directory**: Instant offline-cached catalog with real-time keystroke filtering across family names, categories, and styles.
 - **1-Click Silent Installation (Zero UAC/Admin)**:
   - Automatically extracts TTF font variants into `%LOCALAPPDATA%\Microsoft\Windows\Fonts`.
   - Registers fonts in `HKCU\Software\Microsoft\Windows NT\CurrentVersion\Fonts`.
   - Broadcasts `WM_FONTCHANGE` system-wide—instantly usable across all running apps (Figma, VS Code, Photoshop, browsers) without rebooting.
-- **Antigravity UI Design**:
+- **Glyphr Studio UI**:
   - Cosmic obsidian dark canvas (`#0A0B10`) & sleek elevated card containers (`#141721`).
-  - Antigravity iridescent gradient accent dividing line (cyan `#38BDF8` to violet `#A855F7`).
+  - Iridescent gradient accent dividing line (cyan `#38BDF8` to violet `#A855F7`).
   - Smooth 60 FPS micro-interactions: card hover illumination, pulsating installation states, and floating HUD toast alerts.
   - 1-click **`📋 CSS`** snippet export (`font-family: '...';`) and **`↗ Web`** direct Google Fonts specimen inspector.
   - Responsive overflow-proof card headers and horizontal category carousel.
@@ -28,8 +28,8 @@ The interface is inspired by the **[Google Antigravity](https://antigravity.goog
 
 ```mermaid
 flowchart LR
-    CatalogAPI["Google Fonts API / GWFH"] -->|Fetch 1,950+ Families| CatalogService[Local JSON Cache]
-    CatalogService --> UI["egui / eframe Antigravity Engine"]
+    CatalogAPI["Google Fonts API / GWFH"] -->|Fetch 1,960+ Families| CatalogService[Local JSON Cache]
+    CatalogService --> UI["egui / eframe Glyphr Engine"]
     UI -->|Click Install| Worker[Tokio Async Downloader]
     Worker --> Extractor[ZIP Archive Extractor]
     Extractor --> FontsDir["%LOCALAPPDATA%/Microsoft/Windows/Fonts"]
@@ -69,15 +69,15 @@ cargo build --release
 
 The optimized executable will be located at:
 ```
-target/release/antigravity-fonts.exe
+target/release/glyphr.exe
 ```
 
 ---
 
 ## 💻 Usage
 
-1. Launch `antigravity-fonts.exe`.
+1. Launch `glyphr.exe`.
 2. Browse or type any font name in the search bar (e.g. `Inter`, `Roboto`, `Space Grotesk`, `Playfair`).
 3. Click any category pill to filter styles (`Sans-serif`, `Serif`, `Monospace`, etc.) or see already installed fonts under `Installed`.
 4. Customize the preview text and font size at the top toolbar to inspect the typography.
-5. Click **↓ Install Font** on any family card. The app will download, extract, register, and broadcast the font in a fraction of a second.
+5. Click **↓ Install** on any family card. The app will download, extract, register, and broadcast the font in a fraction of a second.

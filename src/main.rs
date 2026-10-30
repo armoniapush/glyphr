@@ -12,7 +12,7 @@ use eframe::egui::ViewportBuilder;
 fn main() -> eframe::Result<()> {
     // Global panic hook to capture any unexpected runtime panic cleanly
     std::panic::set_hook(Box::new(|info| {
-        if let Some(dirs) = directories::ProjectDirs::from("com", "antigravity", "antigravity-fonts") {
+        if let Some(dirs) = directories::ProjectDirs::from("com", "glyphr", "glyphr") {
             let log_dir = dirs.cache_dir();
             let _ = std::fs::create_dir_all(log_dir);
             let backtrace = std::backtrace::Backtrace::capture();
@@ -25,7 +25,7 @@ fn main() -> eframe::Result<()> {
         viewport: ViewportBuilder::default()
             .with_inner_size([880.0, 680.0])
             .with_min_inner_size([600.0, 480.0])
-            .with_title("Antigravity Fonts")
+            .with_title("Glyphr — The Google Fonts Engine")
             .with_decorations(false)
             .with_visible(true)
             .with_active(true),
@@ -33,7 +33,7 @@ fn main() -> eframe::Result<()> {
     };
 
     eframe::run_native(
-        "Antigravity Fonts",
+        "Glyphr",
         native_options,
         Box::new(|cc| Ok(Box::new(AntigravityFontsApp::new(cc)))),
     )
