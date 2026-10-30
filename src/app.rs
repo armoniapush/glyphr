@@ -163,7 +163,7 @@ impl AntigravityFontsApp {
             requested_previews: HashSet::new(),
             search_query: String::new(),
             selected_category: CategoryFilter::All,
-            preview_text: "DANIELDOBLES".to_string(),
+            preview_text: "GLYPHR STUDIO".to_string(),
             preview_size: 24.0,
             status_message: "Initializing Google Fonts catalog...".to_string(),
             is_loading_catalog: true,
@@ -609,7 +609,7 @@ impl AntigravityFontsApp {
                     let presets = [
                         ("Aa", "The quick brown fox jumps over the lazy dog"),
                         ("123", "0123456789 !@#$%^&*()"),
-                        ("Caps", "DANIEL DOBLES"),
+                        ("Caps", "GLYPHR STUDIO"),
                         ("Pangram", "Sphinx of black quartz, judge my vow"),
                     ];
 

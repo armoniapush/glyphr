@@ -56,7 +56,7 @@ Browse 1,960+ Google Fonts, preview them with real-time TrueType rendering on th
 - Interactive specimen ribbon with responsive font-size slider (`16px` – `56px`) and instant preset toggles:
   - `Aa` — Alphabet (*The quick brown fox jumps over the lazy dog*)
   - `123` — Numerics & Symbols (*0123456789 !@#$%^&*()*)
-  - `Caps` — Uppercase Specimen (*DANIEL DOBLES*)
+  - `Caps` — Uppercase Specimen (*GLYPHR STUDIO*)
   - `Pangram` — Typography Test (*Sphinx of black quartz, judge my vow*)
 
 ### 📋 Developer & Designer Quick Tools

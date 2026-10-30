@@ -2,11 +2,11 @@
 setlocal
 cd /d "%~dp0"
 
-set "EXE_PATH=%~dp0target\release\antigravity-fonts.exe"
-set "CACHE_DIR=%LOCALAPPDATA%\antigravity\antigravity-fonts"
+set "EXE_PATH=%~dp0target\release\glyphr.exe"
+set "CACHE_DIR=%LOCALAPPDATA%\glyphr\glyphr"
 
-:: 1. Terminar cualquier instancia o sesion anterior que siga abierta
-taskkill /F /IM antigravity-fonts.exe >nul 2>&1
+:: 1. Terminar cualquier instancia anterior que siga abierta
+taskkill /F /IM glyphr.exe >nul 2>&1
 timeout /t 1 /nobreak >nul 2>&1
 
 :: 2. Limpieza de cache si se ejecuta con flag --clean
@@ -19,7 +19,7 @@ if /i "%~1"=="-c" (
 
 :: 3. Verificar o compilar si no existe el binario release
 if not exist "%EXE_PATH%" (
-    echo [Antigravity Fonts] Compilando binario optimizado...
+    echo [Glyphr] Compilando binario optimizado...
     cargo build --release
     if %ERRORLEVEL% neq 0 (
         echo [Error] No se pudo compilar el ejecutable.
