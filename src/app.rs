@@ -43,9 +43,10 @@ pub struct AntigravityFontsApp {
     preview_text: String,
     preview_size: f32,
 
-    // Status
+    // Status & Micro-interactions Toast
     status_message: String,
     is_loading_catalog: bool,
+    toast_notification: Option<(String, std::time::Instant)>,
 
     // Worker channels
     tx_worker: Sender<WorkerCmd>,
@@ -166,6 +167,7 @@ impl AntigravityFontsApp {
             preview_size: 24.0,
             status_message: "Initializing Google Fonts catalog...".to_string(),
             is_loading_catalog: true,
+            toast_notification: None,
             tx_worker,
             rx_ui,
         };
@@ -244,6 +246,10 @@ impl AntigravityFontsApp {
                             self.installed_families.insert(id.clone());
                             self.font_states.insert(id.clone(), InstallState::Installed);
                             self.status_message = format!("Installed {id} successfully!");
+                            self.toast_notification = Some((
+                                format!("✓ Installed {id} in Windows!"),
+                                std::time::Instant::now(),
+                            ));
 
                             // Immediately queue preview fetch for newly installed font
                             if let Some(font_item) = self.all_fonts.iter().find(|f| f.id == id) {
@@ -296,14 +302,12 @@ impl AntigravityFontsApp {
         let (rect, _) = ui.allocate_exact_size(vec2(ui.available_width(), height), Sense::hover());
         let painter = ui.painter();
 
-        // Dark acrylic title bar background & bottom subtle divider
+        // Dark acrylic title bar background & bottom iridescent accent divider
         painter.rect_filled(rect, CornerRadius::ZERO, Material3Theme::SURFACE_CONTAINER_LOW);
-        painter.line_segment(
-            [
-                Pos2::new(rect.min.x, rect.max.y),
-                Pos2::new(rect.max.x, rect.max.y),
-            ],
-            Stroke::new(1.0, Material3Theme::OUTLINE_VARIANT),
+        Material3Theme::paint_iridescent_line(
+            painter,
+            Pos2::new(rect.min.x, rect.max.y),
+            Pos2::new(rect.max.x, rect.max.y),
         );
 
         // Window drag interaction across entire title bar
@@ -577,23 +581,34 @@ impl AntigravityFontsApp {
 
                     ui.add(
                         egui::TextEdit::singleline(&mut self.preview_text)
-                            .desired_width(220.0)
+                            .desired_width(200.0)
                             .font(FontId::proportional(13.0))
                             .text_color(Material3Theme::ON_SURFACE),
                     );
 
-                    if ui.small_button("Aa").clicked() {
-                        self.preview_text =
-                            "The quick brown fox jumps over the lazy dog".to_string();
-                    }
-                    if ui.small_button("123").clicked() {
-                        self.preview_text = "0123456789 !@#$%^&*()".to_string();
-                    }
-                    if ui.small_button("Caps").clicked() {
-                        self.preview_text = "DANIEL DOBLES".to_string();
+                    let presets = [
+                        ("Aa", "The quick brown fox jumps over the lazy dog"),
+                        ("123", "0123456789 !@#$%^&*()"),
+                        ("Caps", "DANIEL DOBLES"),
+                        ("Pangram", "Sphinx of black quartz, judge my vow"),
+                    ];
+
+                    for (label, text) in presets {
+                        let btn = egui::Button::new(
+                            RichText::new(label)
+                                .font(FontId::proportional(11.0))
+                                .color(Material3Theme::ON_SURFACE_VARIANT),
+                        )
+                        .fill(Material3Theme::SURFACE_CONTAINER)
+                        .stroke(Stroke::new(1.0, Material3Theme::OUTLINE_VARIANT))
+                        .corner_radius(CornerRadius::same(6));
+
+                        if ui.add(btn).clicked() {
+                            self.preview_text = text.to_string();
+                        }
                     }
 
-                    ui.add_space(14.0);
+                    ui.add_space(10.0);
 
                     ui.label(
                         RichText::new("Size:")
@@ -621,24 +636,57 @@ impl AntigravityFontsApp {
     fn render_font_card(&mut self, ui: &mut Ui, font: &FontItem) {
         let is_installed = self.installed_families.contains(&font.id);
         let current_state = self.font_states.get(&font.id).cloned();
+        let card_id = ui.id().with("card").with(&font.id);
 
-        let border_stroke = match &current_state {
-            Some(InstallState::Downloading) | Some(InstallState::Installing) => {
-                Stroke::new(1.5, Material3Theme::PRIMARY)
-            }
-            Some(InstallState::Installed) => Stroke::new(1.0, Material3Theme::SUCCESS),
-            Some(InstallState::Error(_)) => Stroke::new(1.5, Material3Theme::ERROR),
-            _ if is_installed => Stroke::new(1.0, Material3Theme::SUCCESS),
-            _ => Stroke::new(1.0, Material3Theme::OUTLINE_VARIANT),
+        let was_hovered = ui.data(|d| d.get_temp::<bool>(card_id).unwrap_or(false));
+        let hover_t = ui.ctx().animate_bool(card_id, was_hovered);
+
+        // Animated surface fill
+        let card_fill = Material3Theme::lerp_color(
+            Material3Theme::SURFACE_CONTAINER,
+            Material3Theme::SURFACE_CONTAINER_HIGH,
+            hover_t,
+        );
+
+        // Dynamic animated border stroke
+        let is_busy = matches!(
+            &current_state,
+            Some(InstallState::Downloading) | Some(InstallState::Installing)
+        );
+
+        let border_stroke = if is_busy {
+            let time = ui.input(|i| i.time);
+            let pulse = ((time * 6.0).sin() * 0.5 + 0.5) as f32;
+            ui.ctx().request_repaint();
+            let stroke_col = Material3Theme::lerp_color(
+                Material3Theme::PRIMARY,
+                Material3Theme::ACCENT_PURPLE,
+                pulse,
+            );
+            Stroke::new(1.5, stroke_col)
+        } else if matches!(&current_state, Some(InstallState::Error(_))) {
+            Stroke::new(1.5, Material3Theme::ERROR)
+        } else if is_installed {
+            let idle_green = Color32::from_rgb(18, 52, 36);
+            let active_green = Material3Theme::SUCCESS;
+            let stroke_col = Material3Theme::lerp_color(idle_green, active_green, hover_t);
+            Stroke::new(1.0 + hover_t * 0.3, stroke_col)
+        } else {
+            let stroke_col = Material3Theme::lerp_color(
+                Material3Theme::OUTLINE_VARIANT,
+                Material3Theme::PRIMARY,
+                hover_t * 0.85,
+            );
+            Stroke::new(1.0 + hover_t * 0.3, stroke_col)
         };
 
-        egui::Frame::NONE
-            .fill(Material3Theme::SURFACE_CONTAINER)
+        let card_resp = egui::Frame::NONE
+            .fill(card_fill)
             .stroke(border_stroke)
             .corner_radius(CornerRadius::same(12))
             .inner_margin(Margin::symmetric(16, 12))
             .show(ui, |ui| {
-                // Row 1: Header (Font Name, Secondary Metadata, Action Button)
+                // Row 1: Header (Font Name, Secondary Metadata, Quick Micro-Actions, Action Button)
                 ui.horizontal(|ui| {
                     ui.label(
                         RichText::new(&font.family)
@@ -671,33 +719,113 @@ impl AntigravityFontsApp {
                             .color(Material3Theme::ON_SURFACE_VARIANT),
                     );
 
-                    // Push action button to right edge WITHOUT with_layout
-                    let btn_w = 92.0;
+                    // Right side: Micro-actions + Install Button
+                    let total_actions_w = 216.0;
                     let avail = ui.available_width();
-                    if avail > btn_w {
-                        ui.add_space(avail - btn_w);
+                    if avail > total_actions_w {
+                        ui.add_space(avail - total_actions_w);
                     }
 
+                    // Micro-action 1: Copy CSS declaration
+                    let css_fg = Material3Theme::lerp_color(
+                        Material3Theme::ON_SURFACE_MUTED,
+                        Material3Theme::ON_SURFACE,
+                        hover_t,
+                    );
+                    let css_btn = egui::Button::new(
+                        RichText::new("📋 CSS")
+                            .font(FontId::proportional(10.5))
+                            .color(css_fg),
+                    )
+                    .min_size(vec2(52.0, 24.0))
+                    .fill(Material3Theme::SURFACE_CONTAINER_LOW)
+                    .stroke(Stroke::new(1.0, Material3Theme::OUTLINE_VARIANT))
+                    .corner_radius(CornerRadius::same(8));
+
+                    if ui
+                        .add(css_btn)
+                        .on_hover_text("Copy font-family CSS declaration")
+                        .clicked()
+                    {
+                        let fallback = match font.category.as_str() {
+                            "serif" => "serif",
+                            "monospace" => "monospace",
+                            "handwriting" => "cursive",
+                            "display" => "sans-serif",
+                            _ => "sans-serif",
+                        };
+                        let css_rule = format!("font-family: '{}', {};", font.family, fallback);
+                        ui.ctx().copy_text(css_rule.clone());
+                        self.toast_notification = Some((
+                            format!("Copied: {css_rule}"),
+                            std::time::Instant::now(),
+                        ));
+                    }
+
+                    // Micro-action 2: Google Fonts specimen link
+                    let web_fg = Material3Theme::lerp_color(
+                        Material3Theme::ON_SURFACE_MUTED,
+                        Material3Theme::PRIMARY,
+                        hover_t,
+                    );
+                    let web_btn = egui::Button::new(
+                        RichText::new("↗ Web")
+                            .font(FontId::proportional(10.5))
+                            .color(web_fg),
+                    )
+                    .min_size(vec2(52.0, 24.0))
+                    .fill(Material3Theme::SURFACE_CONTAINER_LOW)
+                    .stroke(Stroke::new(1.0, Material3Theme::OUTLINE_VARIANT))
+                    .corner_radius(CornerRadius::same(8));
+
+                    let web_url = format!(
+                        "https://fonts.google.com/specimen/{}",
+                        font.family.replace(' ', "+")
+                    );
+                    if ui
+                        .add(web_btn)
+                        .on_hover_text("Open full specimen & license on Google Fonts")
+                        .clicked()
+                    {
+                        ui.ctx().open_url(egui::OpenUrl::new_tab(web_url));
+                    }
+
+                    // Main Install / Status Button
+                    let btn_w = 92.0;
                     match &current_state {
                         Some(InstallState::Downloading) => {
+                            let time = ui.input(|i| i.time);
+                            let pulse = ((time * 5.0).sin() * 0.5 + 0.5) as f32;
+                            let pulse_fill = Material3Theme::lerp_color(
+                                Material3Theme::PRIMARY_CONTAINER,
+                                Material3Theme::SURFACE_CONTAINER_HIGHEST,
+                                pulse,
+                            );
                             let btn = egui::Button::new(
                                 RichText::new("⏳ Downloading")
                                     .font(FontId::proportional(10.5))
                                     .color(Material3Theme::ON_PRIMARY_CONTAINER),
                             )
                             .min_size(vec2(btn_w, 24.0))
-                            .fill(Material3Theme::PRIMARY_CONTAINER)
+                            .fill(pulse_fill)
                             .corner_radius(CornerRadius::same(12));
                             ui.add_enabled(false, btn);
                         }
                         Some(InstallState::Installing) => {
+                            let time = ui.input(|i| i.time);
+                            let pulse = ((time * 5.0).sin() * 0.5 + 0.5) as f32;
+                            let pulse_fill = Material3Theme::lerp_color(
+                                Material3Theme::PRIMARY_CONTAINER,
+                                Material3Theme::SURFACE_CONTAINER_HIGHEST,
+                                pulse,
+                            );
                             let btn = egui::Button::new(
                                 RichText::new("⚡ Installing")
                                     .font(FontId::proportional(10.5))
                                     .color(Material3Theme::ON_PRIMARY_CONTAINER),
                             )
                             .min_size(vec2(btn_w, 24.0))
-                            .fill(Material3Theme::PRIMARY_CONTAINER)
+                            .fill(pulse_fill)
                             .corner_radius(CornerRadius::same(12));
                             ui.add_enabled(false, btn);
                         }
@@ -792,6 +920,10 @@ impl AntigravityFontsApp {
                         .color(Material3Theme::ON_SURFACE),
                 );
             });
+
+        // Store hover state for next frame's silky smooth interpolation
+        let card_hovered = ui.rect_contains_pointer(card_resp.response.rect);
+        ui.data_mut(|d| d.insert_temp(card_id, card_hovered));
     }
 
     /// Renders scrollable font catalog in a clean, responsive single-column stream
@@ -837,6 +969,51 @@ impl AntigravityFontsApp {
                 }
             });
     }
+
+    /// Renders floating micro-interaction toast notification (e.g. for Copy CSS, Installed, etc.)
+    fn render_toast_notification(&mut self, ctx: &egui::Context) {
+        if let Some((msg, created_at)) = &self.toast_notification {
+            let elapsed = created_at.elapsed().as_secs_f32();
+            if elapsed > 2.5 {
+                self.toast_notification = None;
+                return;
+            }
+
+            ctx.request_repaint();
+
+            let alpha = if elapsed < 1.8 {
+                1.0
+            } else {
+                ((2.5 - elapsed) / 0.7).clamp(0.0, 1.0)
+            };
+
+            let screen_rect = ctx.screen_rect();
+            let toast_pos = Pos2::new(screen_rect.center().x, screen_rect.max.y - 36.0);
+
+            let painter = ctx.layer_painter(egui::LayerId::new(
+                egui::Order::Foreground,
+                egui::Id::new("toast_notification_layer"),
+            ));
+
+            let font_id = FontId::proportional(12.0);
+            let text_color = Color32::from_rgba_unmultiplied(248, 250, 252, (255.0 * alpha) as u8);
+            let bg_color = Color32::from_rgba_unmultiplied(20, 23, 33, (240.0 * alpha) as u8);
+            let border_color = Color32::from_rgba_unmultiplied(56, 189, 248, (220.0 * alpha) as u8);
+
+            let galley = painter.layout_no_wrap(msg.clone(), font_id, text_color);
+            let padding = vec2(14.0, 7.0);
+            let toast_rect = Rect::from_center_size(toast_pos, galley.size() + padding * 2.0);
+
+            painter.rect_filled(toast_rect, CornerRadius::same(12), bg_color);
+            painter.rect_stroke(
+                toast_rect,
+                CornerRadius::same(12),
+                Stroke::new(1.0, border_color),
+                StrokeKind::Inside,
+            );
+            painter.galley(toast_rect.min + padding, galley, text_color);
+        }
+    }
 }
 
 impl eframe::App for AntigravityFontsApp {
@@ -862,5 +1039,7 @@ impl eframe::App for AntigravityFontsApp {
                         self.render_font_list(ui);
                     });
             });
+
+        self.render_toast_notification(ctx);
     }
 }
