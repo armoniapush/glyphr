@@ -1,6 +1,7 @@
 use egui::{
     epaint::{Shadow, Vertex},
-    Color32, CornerRadius, Margin, Mesh, Pos2, Rect, Shape, Stroke, Style, Visuals,
+    Color32, CornerRadius, FontId, Margin, Mesh, Pos2, Rect, Sense, Shape, Stroke, StrokeKind,
+    Style, Ui, Visuals, vec2,
 };
 
 /// Antigravity Cosmic & Iridescent Design System (Google Antigravity & Stitch Dark Mode)
@@ -8,11 +9,11 @@ pub struct AntigravityTheme;
 
 impl AntigravityTheme {
     // Cosmic Void & Surface Palette
-    pub const VOID_BG: Color32 = Color32::from_rgb(8, 10, 15); // #080A0F Deep Void
+    pub const VOID_BG: Color32 = Color32::from_rgb(8, 10, 15); // #080A0F Deep Space Void
     pub const SURFACE_GLASS: Color32 = Color32::from_rgb(13, 16, 24); // #0D1018 Frosted Glass
-    pub const CARD_BG: Color32 = Color32::from_rgb(17, 21, 32); // #111520 Obsidian Card
-    pub const CARD_HOVER_BG: Color32 = Color32::from_rgb(22, 28, 43); // #161C2B Luminous Card
-    pub const CONTROL_BG: Color32 = Color32::from_rgb(20, 25, 38); // #141926 Inputs & Docks
+    pub const CARD_BG: Color32 = Color32::from_rgb(16, 20, 30); // #10141E Obsidian Specimen Card
+    pub const CARD_HOVER_BG: Color32 = Color32::from_rgb(22, 28, 42); // #161C2A Luminous Card
+    pub const CONTROL_BG: Color32 = Color32::from_rgb(18, 23, 34); // #121722 Inputs & Dock
 
     // Iridescent Accents (Prismatic Google Antigravity)
     pub const IRIS_CYAN: Color32 = Color32::from_rgb(34, 211, 238); // #22D3EE Electric Cyan
@@ -26,17 +27,17 @@ impl AntigravityTheme {
     pub const SUCCESS_MINT: Color32 = Color32::from_rgb(52, 211, 153); // #34D399 Mint Green
     pub const ERROR_ROSE: Color32 = Color32::from_rgb(251, 113, 133); // #FB7185 Coral Rose
 
-    // Translucent Tint Overlays
-    pub const TINT_CYAN: Color32 = Color32::from_rgba_premultiplied(34, 211, 238, 22);
-    pub const TINT_VIOLET: Color32 = Color32::from_rgba_premultiplied(168, 85, 247, 22);
-    pub const TINT_PINK: Color32 = Color32::from_rgba_premultiplied(244, 63, 94, 22);
-    pub const TINT_SUCCESS: Color32 = Color32::from_rgba_premultiplied(52, 211, 153, 25);
+    // Translucent Tint Overlays (Mathematically Valid Premultiplied Alpha)
+    pub const TINT_CYAN: Color32 = Color32::from_rgba_premultiplied(4, 25, 28, 30);
+    pub const TINT_VIOLET: Color32 = Color32::from_rgba_premultiplied(20, 10, 29, 30);
+    pub const TINT_PINK: Color32 = Color32::from_rgba_premultiplied(29, 7, 11, 30);
+    pub const TINT_SUCCESS: Color32 = Color32::from_rgba_premultiplied(6, 25, 18, 30);
     #[allow(dead_code)]
-    pub const TINT_SURFACE: Color32 = Color32::from_rgba_premultiplied(255, 255, 255, 8);
+    pub const TINT_SURFACE: Color32 = Color32::from_rgba_premultiplied(12, 12, 12, 12);
 
     // Subtle Borders & Outlines
-    pub const BORDER_IDLE: Color32 = Color32::from_rgba_premultiplied(255, 255, 255, 16);
-    pub const BORDER_SUBTLE: Color32 = Color32::from_rgba_premultiplied(148, 163, 184, 30);
+    pub const BORDER_IDLE: Color32 = Color32::from_rgba_premultiplied(18, 18, 18, 18);
+    pub const BORDER_SUBTLE: Color32 = Color32::from_rgba_premultiplied(23, 25, 29, 40);
     #[allow(dead_code)]
     pub const BORDER_FOCUS: Color32 = Color32::from_rgb(56, 189, 248);
 
@@ -79,7 +80,7 @@ impl AntigravityTheme {
         visuals.widgets.active.fg_stroke = Stroke::new(1.0, Color32::WHITE);
 
         // Selection
-        visuals.selection.bg_fill = Color32::from_rgba_premultiplied(56, 189, 248, 45);
+        visuals.selection.bg_fill = Color32::from_rgba_unmultiplied(56, 189, 248, 50);
         visuals.selection.stroke = Stroke::new(1.0, Self::IRIS_CYAN);
 
         visuals.window_shadow = Shadow::NONE;
@@ -89,9 +90,36 @@ impl AntigravityTheme {
         style.visuals = visuals;
         style.spacing.item_spacing = egui::vec2(10.0, 10.0);
         style.spacing.window_margin = Margin::symmetric(24, 16);
-        style.spacing.button_padding = egui::vec2(14.0, 7.0);
+        style.spacing.button_padding = egui::vec2(12.0, 6.0);
 
         ctx.set_style(style);
+    }
+
+    /// Renders a Google-style rounded pill badge with crisp typography and subtle alpha blending
+    pub fn render_badge(ui: &mut Ui, text: &str, fg: Color32, bg: Color32, border: Color32) {
+        let padding = vec2(7.0, 2.5);
+        let font_id = FontId::proportional(10.5);
+        let text_galley = ui.painter().layout_no_wrap(text.to_string(), font_id, fg);
+        let size = text_galley.size() + padding * 2.0;
+        let (rect, _) = ui.allocate_exact_size(size, Sense::hover());
+        let painter = ui.painter();
+        let radius = CornerRadius::same((size.y * 0.5) as u8);
+        painter.rect_filled(rect, radius, bg);
+        painter.rect_stroke(rect, radius, Stroke::new(1.0, border), StrokeKind::Inside);
+        painter.galley(rect.min + padding, text_galley, fg);
+    }
+
+    /// Draws a crisp vector magnifying glass icon with zero font dependency
+    pub fn paint_search_icon(painter: &egui::Painter, center: Pos2, color: Color32) {
+        let circle_center = Pos2::new(center.x - 2.0, center.y - 2.0);
+        painter.circle_stroke(circle_center, 5.0, Stroke::new(1.5, color));
+        painter.line_segment(
+            [
+                Pos2::new(center.x + 1.5, center.y + 1.5),
+                Pos2::new(center.x + 6.0, center.y + 6.0),
+            ],
+            Stroke::new(1.5, color),
+        );
     }
 
     /// Paints a glowing horizontal iridescent gradient line (Cyan -> Violet -> Pink)

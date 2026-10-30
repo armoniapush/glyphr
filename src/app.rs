@@ -316,36 +316,40 @@ impl AntigravityFontsApp {
                 ui.horizontal(|ui| {
                     ui.label(
                         RichText::new("Antigravity Fonts")
-                            .font(FontId::proportional(17.0))
+                            .font(FontId::proportional(18.0))
                             .strong()
                             .color(AntigravityTheme::TEXT_PRIMARY),
                     );
 
-                    // Status Pill with live indicator
-                    let (status_color, status_bg, status_text) = if self.is_loading_catalog {
-                        (
-                            AntigravityTheme::IRIS_CYAN,
-                            AntigravityTheme::TINT_CYAN,
-                            "● Syncing...".to_string(),
-                        )
+                    ui.add_space(4.0);
+
+                    // Refined live status badge
+                    let (status_color, status_text) = if self.is_loading_catalog {
+                        (AntigravityTheme::IRIS_CYAN, "Syncing catalog...")
                     } else {
-                        (
-                            AntigravityTheme::SUCCESS_MINT,
-                            AntigravityTheme::TINT_SUCCESS,
-                            format!("● {} fonts ready", self.all_fonts.len()),
-                        )
+                        (AntigravityTheme::SUCCESS_MINT, "Ready to install")
                     };
 
-                    let badge = RichText::new(status_text)
-                        .font(FontId::proportional(11.0))
-                        .color(status_color);
-                    ui.label(egui::WidgetText::RichText(badge).background_color(status_bg));
+                    AntigravityTheme::render_badge(
+                        ui,
+                        &format!("● {status_text}"),
+                        status_color,
+                        if self.is_loading_catalog {
+                            AntigravityTheme::TINT_CYAN
+                        } else {
+                            AntigravityTheme::TINT_SUCCESS
+                        },
+                        status_color,
+                    );
                 });
 
                 ui.label(
-                    RichText::new("Google Fonts catalog & silent Windows installer")
-                        .font(FontId::proportional(11.0))
-                        .color(AntigravityTheme::TEXT_MUTED),
+                    RichText::new(format!(
+                        "{} font families • Silent Windows installer",
+                        self.all_fonts.len()
+                    ))
+                    .font(FontId::proportional(11.0))
+                    .color(AntigravityTheme::TEXT_MUTED),
                 );
             });
 
@@ -376,7 +380,7 @@ impl AntigravityFontsApp {
 
     /// Renders Floating Pill Search Bar and Filter Chips
     fn render_search_and_filters(&mut self, ui: &mut Ui) {
-        // Floating Pill Search Bar (38px height, 19px radius)
+        // Floating Pill Search Bar
         let search_rect = ui.available_rect_before_wrap();
         let height = 38.0;
         let (rect, _) = ui.allocate_exact_size(vec2(search_rect.width(), height), Sense::hover());
@@ -394,25 +398,23 @@ impl AntigravityFontsApp {
             StrokeKind::Inside,
         );
 
-        // Leading search icon
-        painter.text(
-            Pos2::new(rect.min.x + 16.0, rect.center().y),
-            Align2::LEFT_CENTER,
-            "⌕",
-            FontId::proportional(18.0),
+        // Crisp vector search magnifying glass icon
+        AntigravityTheme::paint_search_icon(
+            &painter,
+            Pos2::new(rect.min.x + 20.0, rect.center().y),
             AntigravityTheme::IRIS_CYAN,
         );
 
         // Inner TextEdit
         let inner_rect = Rect::from_min_max(
-            Pos2::new(rect.min.x + 38.0, rect.min.y + 2.0),
+            Pos2::new(rect.min.x + 40.0, rect.min.y + 2.0),
             Pos2::new(rect.max.x - 38.0, rect.max.y - 2.0),
         );
 
         let mut child_ui = ui.new_child(egui::UiBuilder::new().max_rect(inner_rect));
         let response = child_ui.add(
             egui::TextEdit::singleline(&mut self.search_query)
-                .hint_text("Search Google Fonts by name, category, style (e.g. Inter, Roboto, Serif)...")
+                .hint_text("Search 1,968 fonts by name, category, or style (e.g. Inter, Roboto, Serif)...")
                 .frame(false)
                 .font(FontId::proportional(13.5))
                 .text_color(AntigravityTheme::TEXT_PRIMARY),
@@ -495,7 +497,7 @@ impl AntigravityFontsApp {
         });
     }
 
-    /// Renders Specimen Dock Toolbar with Presets
+    /// Renders Specimen Dock Toolbar with Presets and stable sizing
     fn render_preview_controls(&mut self, ui: &mut Ui) {
         ui.add_space(2.0);
         egui::Frame::NONE
@@ -511,9 +513,9 @@ impl AntigravityFontsApp {
                             .color(AntigravityTheme::TEXT_MUTED),
                     );
 
-                    let input_width = (ui.available_width() - 250.0).max(100.0);
+                    // Fixed comfortable width so controls to the right are NEVER pushed off screen
                     let edit = egui::TextEdit::singleline(&mut self.preview_text)
-                        .desired_width(input_width)
+                        .desired_width(260.0)
                         .font(FontId::proportional(13.0))
                         .text_color(AntigravityTheme::TEXT_PRIMARY);
                     ui.add(edit);
@@ -529,7 +531,7 @@ impl AntigravityFontsApp {
                         self.preview_text = "DANIEL DOBLES".to_string();
                     }
 
-                    ui.add_space(8.0);
+                    ui.add_space(16.0);
 
                     ui.label(
                         RichText::new("Size:")
@@ -538,21 +540,23 @@ impl AntigravityFontsApp {
                     );
 
                     ui.add(
-                        egui::Slider::new(&mut self.preview_size, 16.0..=64.0)
+                        egui::Slider::new(&mut self.preview_size, 16.0..=56.0)
                             .show_value(false),
                     );
 
-                    // Iridescent size badge
-                    let size_badge = RichText::new(format!("{:.0}px", self.preview_size))
-                        .font(FontId::proportional(11.0))
-                        .color(AntigravityTheme::IRIS_CYAN);
-                    ui.label(egui::WidgetText::RichText(size_badge).background_color(AntigravityTheme::TINT_CYAN));
+                    AntigravityTheme::render_badge(
+                        ui,
+                        &format!("{:.0}px", self.preview_size),
+                        AntigravityTheme::IRIS_CYAN,
+                        AntigravityTheme::TINT_CYAN,
+                        AntigravityTheme::IRIS_CYAN,
+                    );
                 });
             });
     }
 
-    /// Renders an individual Cosmic Font Specimen Card
-    fn render_font_card(&mut self, ui: &mut Ui, font: &FontItem) {
+    /// Renders an individual Cosmic Font Specimen Card Tile in the Grid
+    fn render_font_card(&mut self, ui: &mut Ui, font: &FontItem, width: f32, height: f32) {
         let is_installed = self.installed_families.contains(&font.id);
         let current_state = self.font_states.get(&font.id).cloned();
 
@@ -566,184 +570,189 @@ impl AntigravityFontsApp {
             _ => Stroke::new(1.0, AntigravityTheme::BORDER_IDLE),
         };
 
-        egui::Frame::NONE
-            .fill(AntigravityTheme::CARD_BG)
-            .stroke(border_stroke)
-            .corner_radius(CornerRadius::same(12))
-            .inner_margin(Margin::symmetric(16, 12))
-            .show(ui, |ui| {
-                // Top header row: font name, sleek badges, right-aligned action button
-                ui.horizontal(|ui| {
-                    ui.label(
-                        RichText::new(&font.family)
-                            .font(FontId::proportional(16.0))
-                            .strong()
-                            .color(AntigravityTheme::TEXT_PRIMARY),
-                    );
+        let (card_rect, response) = ui.allocate_exact_size(vec2(width, height), Sense::hover());
+        let painter = ui.painter();
 
-                    ui.add_space(4.0);
+        let radius = CornerRadius::same(14);
+        let bg = if response.hovered() {
+            AntigravityTheme::CARD_HOVER_BG
+        } else {
+            AntigravityTheme::CARD_BG
+        };
+        painter.rect_filled(card_rect, radius, bg);
 
-                    // Category Pill Badge (iridescent cyan)
-                    let cat_text = RichText::new(font.category.to_uppercase())
-                        .font(FontId::proportional(10.0))
-                        .color(AntigravityTheme::IRIS_CYAN);
-                    ui.label(
-                        egui::WidgetText::RichText(cat_text)
-                            .background_color(AntigravityTheme::TINT_CYAN),
-                    );
+        let final_stroke = if response.hovered() {
+            Stroke::new(1.0, AntigravityTheme::IRIS_CYAN)
+        } else {
+            border_stroke
+        };
+        painter.rect_stroke(card_rect, radius, final_stroke, StrokeKind::Inside);
 
-                    // Styles Pill Badge (iridescent violet)
-                    let variants_count = font.variants.len();
-                    let style_str = if variants_count == 1 {
-                        "1 style".to_string()
-                    } else {
-                        format!("{variants_count} styles")
-                    };
-                    let styles_badge = RichText::new(style_str)
-                        .font(FontId::proportional(10.0))
-                        .color(AntigravityTheme::IRIS_VIOLET);
-                    ui.label(
-                        egui::WidgetText::RichText(styles_badge)
-                            .background_color(AntigravityTheme::TINT_VIOLET),
-                    );
+        // Inner layout within card bounds
+        let inner_rect = card_rect.shrink(12.0);
+        let mut card_ui = ui.new_child(egui::UiBuilder::new().max_rect(inner_rect));
 
-                    // Popularity Rank Badge (iridescent pink)
-                    if font.popularity > 0 {
-                        let rank_badge = RichText::new(format!("#{}", font.popularity))
-                            .font(FontId::proportional(10.0))
-                            .color(AntigravityTheme::IRIS_PINK);
-                        ui.label(
-                            egui::WidgetText::RichText(rank_badge)
-                                .background_color(AntigravityTheme::TINT_PINK),
-                        );
+        // Row 1: Font Name & Action Button
+        card_ui.horizontal(|ui| {
+            ui.label(
+                RichText::new(&font.family)
+                    .font(FontId::proportional(16.5))
+                    .strong()
+                    .color(AntigravityTheme::TEXT_PRIMARY),
+            );
+
+            ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+                match &current_state {
+                    Some(InstallState::Downloading) => {
+                        let btn = egui::Button::new(
+                            RichText::new("⏳ Downloading...")
+                                .font(FontId::proportional(11.0))
+                                .color(AntigravityTheme::IRIS_VIOLET),
+                        )
+                        .fill(AntigravityTheme::TINT_VIOLET)
+                        .stroke(Stroke::new(1.0, AntigravityTheme::IRIS_VIOLET))
+                        .corner_radius(CornerRadius::same(12));
+                        ui.add_enabled(false, btn);
                     }
+                    Some(InstallState::Installing) => {
+                        let btn = egui::Button::new(
+                            RichText::new("⚡ Registering...")
+                                .font(FontId::proportional(11.0))
+                                .color(AntigravityTheme::IRIS_CYAN),
+                        )
+                        .fill(AntigravityTheme::TINT_CYAN)
+                        .stroke(Stroke::new(1.0, AntigravityTheme::IRIS_CYAN))
+                        .corner_radius(CornerRadius::same(12));
+                        ui.add_enabled(false, btn);
+                    }
+                    Some(InstallState::Error(err)) => {
+                        let retry_btn = egui::Button::new(
+                            RichText::new("↻ Retry")
+                                .font(FontId::proportional(11.0))
+                                .color(AntigravityTheme::ERROR_ROSE),
+                        )
+                        .fill(AntigravityTheme::CONTROL_BG)
+                        .stroke(Stroke::new(1.0, AntigravityTheme::ERROR_ROSE))
+                        .corner_radius(CornerRadius::same(12));
 
-                    // Action Button pinned to right
-                    ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-                        match &current_state {
-                            Some(InstallState::Downloading) => {
-                                let btn = egui::Button::new(
-                                    RichText::new("⏳ Downloading...")
-                                        .font(FontId::proportional(11.5))
-                                        .color(AntigravityTheme::IRIS_VIOLET),
-                                )
-                                .fill(AntigravityTheme::TINT_VIOLET)
-                                .stroke(Stroke::new(1.0, AntigravityTheme::IRIS_VIOLET))
-                                .corner_radius(CornerRadius::same(14));
-                                ui.add_enabled(false, btn);
-                            }
-                            Some(InstallState::Installing) => {
-                                let btn = egui::Button::new(
-                                    RichText::new("⚡ Registering...")
-                                        .font(FontId::proportional(11.5))
-                                        .color(AntigravityTheme::IRIS_CYAN),
-                                )
-                                .fill(AntigravityTheme::TINT_CYAN)
-                                .stroke(Stroke::new(1.0, AntigravityTheme::IRIS_CYAN))
-                                .corner_radius(CornerRadius::same(14));
-                                ui.add_enabled(false, btn);
-                            }
-                            Some(InstallState::Error(err)) => {
-                                ui.horizontal(|ui| {
-                                    let retry_btn = egui::Button::new(
-                                        RichText::new("↻ Retry")
-                                            .font(FontId::proportional(11.5))
-                                            .color(AntigravityTheme::ERROR_ROSE),
-                                    )
-                                    .fill(AntigravityTheme::CONTROL_BG)
-                                    .stroke(Stroke::new(1.0, AntigravityTheme::ERROR_ROSE))
-                                    .corner_radius(CornerRadius::same(14));
-
-                                    if ui.add(retry_btn).clicked() {
-                                        let _ = self.tx_worker.send(WorkerCmd::InstallFont {
-                                            id: font.id.clone(),
-                                            family: font.family.clone(),
-                                        });
-                                    }
-
-                                    ui.label(
-                                        RichText::new(format!("Error: {err}"))
-                                            .font(FontId::proportional(10.5))
-                                            .color(AntigravityTheme::ERROR_ROSE),
-                                    );
-                                });
-                            }
-                            _ if is_installed => {
-                                let btn = egui::Button::new(
-                                    RichText::new("✓ Installed")
-                                        .font(FontId::proportional(11.5))
-                                        .strong()
-                                        .color(AntigravityTheme::SUCCESS_MINT),
-                                )
-                                .fill(AntigravityTheme::TINT_SUCCESS)
-                                .stroke(Stroke::new(1.0, AntigravityTheme::SUCCESS_MINT))
-                                .corner_radius(CornerRadius::same(14));
-
-                                if ui
-                                    .add(btn)
-                                    .on_hover_text("Click to re-install or repair font in Windows")
-                                    .clicked()
-                                {
-                                    let _ = self.tx_worker.send(WorkerCmd::InstallFont {
-                                        id: font.id.clone(),
-                                        family: font.family.clone(),
-                                    });
-                                }
-                            }
-                            _ => {
-                                // High-contrast Iridescent Action Button
-                                let btn = egui::Button::new(
-                                    RichText::new("↓ Install Font")
-                                        .font(FontId::proportional(11.5))
-                                        .strong()
-                                        .color(Color32::from_rgb(10, 14, 22)),
-                                )
-                                .fill(AntigravityTheme::IRIS_CYAN)
-                                .corner_radius(CornerRadius::same(14));
-
-                                if ui.add(btn).clicked() {
-                                    let _ = self.tx_worker.send(WorkerCmd::InstallFont {
-                                        id: font.id.clone(),
-                                        family: font.family.clone(),
-                                    });
-                                }
-                            }
+                        if ui.add(retry_btn).on_hover_text(err).clicked() {
+                            let _ = self.tx_worker.send(WorkerCmd::InstallFont {
+                                id: font.id.clone(),
+                                family: font.family.clone(),
+                            });
                         }
-                    });
-                });
-
-                ui.add_space(6.0);
-
-                // Specimen Typography Preview Line rendered with real font glyphs
-                let is_active = self.active_fonts.contains(&font.id);
-                let preview_family = if is_active {
-                    egui::FontFamily::Name(Arc::from(font.id.as_str()))
-                } else {
-                    if !self.requested_previews.contains(&font.id) {
-                        self.requested_previews.insert(font.id.clone());
-                        let _ = self.tx_worker.send(WorkerCmd::FetchPreview {
-                            id: font.id.clone(),
-                            family: font.family.clone(),
-                        });
                     }
-                    egui::FontFamily::Proportional
-                };
+                    _ if is_installed => {
+                        let btn = egui::Button::new(
+                            RichText::new("✓ Installed")
+                                .font(FontId::proportional(11.0))
+                                .strong()
+                                .color(AntigravityTheme::SUCCESS_MINT),
+                        )
+                        .fill(AntigravityTheme::TINT_SUCCESS)
+                        .stroke(Stroke::new(1.0, AntigravityTheme::SUCCESS_MINT))
+                        .corner_radius(CornerRadius::same(12));
 
-                let preview_text = if self.preview_text.trim().is_empty() {
-                    "The quick brown fox jumps over the lazy dog"
-                } else {
-                    &self.preview_text
-                };
+                        if ui
+                            .add(btn)
+                            .on_hover_text("Click to re-install or repair font in Windows")
+                            .clicked()
+                        {
+                            let _ = self.tx_worker.send(WorkerCmd::InstallFont {
+                                id: font.id.clone(),
+                                family: font.family.clone(),
+                            });
+                        }
+                    }
+                    _ => {
+                        let btn = egui::Button::new(
+                            RichText::new("↓ Install Font")
+                                .font(FontId::proportional(11.0))
+                                .strong()
+                                .color(Color32::from_rgb(10, 14, 22)),
+                        )
+                        .fill(AntigravityTheme::IRIS_CYAN)
+                        .corner_radius(CornerRadius::same(12));
 
-                ui.label(
-                    RichText::new(preview_text)
-                        .font(FontId::new(self.preview_size, preview_family))
-                        .color(AntigravityTheme::TEXT_PRIMARY),
-                );
+                        if ui.add(btn).clicked() {
+                            let _ = self.tx_worker.send(WorkerCmd::InstallFont {
+                                id: font.id.clone(),
+                                family: font.family.clone(),
+                            });
+                        }
+                    }
+                }
             });
+        });
+
+        card_ui.add_space(3.0);
+
+        // Row 2: Metadata Badges (crisp pill outlines with soft alpha tint)
+        card_ui.horizontal(|ui| {
+            AntigravityTheme::render_badge(
+                ui,
+                &font.category.to_uppercase(),
+                AntigravityTheme::IRIS_CYAN,
+                AntigravityTheme::TINT_CYAN,
+                AntigravityTheme::IRIS_CYAN,
+            );
+
+            let variants_count = font.variants.len();
+            let style_str = if variants_count == 1 {
+                "1 STYLE".to_string()
+            } else {
+                format!("{variants_count} STYLES")
+            };
+            AntigravityTheme::render_badge(
+                ui,
+                &style_str,
+                AntigravityTheme::IRIS_VIOLET,
+                AntigravityTheme::TINT_VIOLET,
+                AntigravityTheme::IRIS_VIOLET,
+            );
+
+            if font.popularity > 0 {
+                AntigravityTheme::render_badge(
+                    ui,
+                    &format!("#{}", font.popularity),
+                    AntigravityTheme::IRIS_PINK,
+                    AntigravityTheme::TINT_PINK,
+                    AntigravityTheme::IRIS_PINK,
+                );
+            }
+        });
+
+        card_ui.add_space(8.0);
+
+        // Row 3: Specimen Typography Preview Line rendered with real font glyphs
+        let is_active = self.active_fonts.contains(&font.id);
+        let preview_family = if is_active {
+            egui::FontFamily::Name(Arc::from(font.id.as_str()))
+        } else {
+            if !self.requested_previews.contains(&font.id) {
+                self.requested_previews.insert(font.id.clone());
+                let _ = self.tx_worker.send(WorkerCmd::FetchPreview {
+                    id: font.id.clone(),
+                    family: font.family.clone(),
+                });
+            }
+            egui::FontFamily::Proportional
+        };
+
+        let preview_text = if self.preview_text.trim().is_empty() {
+            "The quick brown fox jumps over the lazy dog"
+        } else {
+            &self.preview_text
+        };
+
+        card_ui.label(
+            RichText::new(preview_text)
+                .font(FontId::new(self.preview_size, preview_family))
+                .color(AntigravityTheme::TEXT_PRIMARY),
+        );
     }
 
-    /// Renders scrollable font list with virtual scrolling
+    /// Renders scrollable font catalog in a balanced responsive multi-column grid
     fn render_font_list(&mut self, ui: &mut Ui) {
         let total_count = self.filtered_indices.len();
         if total_count == 0 {
@@ -779,20 +788,40 @@ impl AntigravityFontsApp {
                     .color(AntigravityTheme::TEXT_MUTED),
             );
         });
-        ui.add_space(2.0);
+        ui.add_space(4.0);
 
-        // Dynamically scaled row height to guarantee perfect proportions
-        let row_height = (self.preview_size + 64.0).max(84.0);
+        // Multi-column responsive grid calculation
+        let available_w = ui.available_width();
+        let min_col_w = 420.0;
+        let spacing = 12.0;
+        let num_cols = ((available_w + spacing) / (min_col_w + spacing)).floor().max(1.0) as usize;
+        let col_w = ((available_w - (num_cols - 1) as f32 * spacing) / num_cols as f32).max(280.0);
+
+        let card_height = (self.preview_size + 92.0).max(126.0);
+        let row_height = card_height + spacing;
+        let num_rows = (total_count + num_cols - 1) / num_cols;
+
         ScrollArea::vertical()
             .auto_shrink([false; 2])
-            .show_rows(ui, row_height, total_count, |ui, row_range| {
-                for i in row_range {
-                    if let Some(&font_idx) = self.filtered_indices.get(i) {
-                        if let Some(font) = self.all_fonts.get(font_idx).cloned() {
-                            self.render_font_card(ui, &font);
-                            ui.add_space(6.0);
+            .show_rows(ui, row_height, num_rows, |ui, row_range| {
+                for row_idx in row_range {
+                    ui.horizontal(|ui| {
+                        ui.spacing_mut().item_spacing.x = spacing;
+                        for col_idx in 0..num_cols {
+                            let item_idx = row_idx * num_cols + col_idx;
+                            if item_idx < total_count {
+                                if let Some(&font_idx) = self.filtered_indices.get(item_idx) {
+                                    if let Some(font) = self.all_fonts.get(font_idx).cloned() {
+                                        self.render_font_card(ui, &font, col_w, card_height);
+                                    }
+                                }
+                            } else {
+                                // Invisible placeholder to balance spacing in last row
+                                ui.allocate_exact_size(vec2(col_w, card_height), Sense::hover());
+                            }
                         }
-                    }
+                    });
+                    ui.add_space(spacing);
                 }
             });
     }
