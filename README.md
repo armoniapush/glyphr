@@ -15,10 +15,12 @@ The interface is inspired by the **[Google Antigravity](https://antigravity.goog
   - Registers fonts in `HKCU\Software\Microsoft\Windows NT\CurrentVersion\Fonts`.
   - Broadcasts `WM_FONTCHANGE` system-wide—instantly usable across all running apps (Figma, VS Code, Photoshop, browsers) without rebooting.
 - **Antigravity UI Design**:
-  - Cosmic dark canvas (`#0A0C10`) & sleek elevated card containers (`#141925`).
-  - Category filters: `All`, `Sans-serif`, `Serif`, `Display`, `Handwriting`, `Monospace`, and `Installed`.
-  - Editable live typography preview bar with adjustable font size slider.
-  - State badges: `✓ Installed`, `⏳ Downloading...`, `⚡ Registering...`, and `↓ Install Font`.
+  - Cosmic obsidian dark canvas (`#0A0B10`) & sleek elevated card containers (`#141721`).
+  - Antigravity iridescent gradient accent dividing line (cyan `#38BDF8` to violet `#A855F7`).
+  - Smooth 60 FPS micro-interactions: card hover illumination, pulsating installation states, and floating HUD toast alerts.
+  - 1-click **`📋 CSS`** snippet export (`font-family: '...';`) and **`↗ Web`** direct Google Fonts specimen inspector.
+  - Responsive overflow-proof card headers and horizontal category carousel.
+  - Editable live typography preview bar with adjustable font size slider and quick presets (`Aa`, `123`, `Caps`, `Pangram`).
 
 ---
 
