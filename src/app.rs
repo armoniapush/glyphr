@@ -588,190 +588,189 @@ impl AntigravityFontsApp {
         };
         painter.rect_stroke(card_rect, radius, final_stroke, StrokeKind::Inside);
 
-        // Inner layout strictly bound to inner_rect
-        let inner_rect = card_rect.shrink2(vec2(14.0, 12.0));
-        let mut card_ui = ui.new_child(egui::UiBuilder::new().max_rect(inner_rect));
-        card_ui.set_clip_rect(inner_rect);
+        // Inner layout strictly bound to inner_rect using allocate_new_ui
+        let inner_rect = card_rect.shrink2(vec2(16.0, 12.0));
+        ui.allocate_new_ui(egui::UiBuilder::new().max_rect(inner_rect), |card_ui| {
+            // Row 1: Font Name (left) & Action Button (right) with fixed height
+            card_ui.horizontal(|ui| {
+                ui.set_height(26.0);
+                ui.label(
+                    RichText::new(&font.family)
+                        .font(FontId::proportional(16.5))
+                        .strong()
+                        .color(AntigravityTheme::TEXT_PRIMARY),
+                );
 
-        // Row 1: Font Name (left) & Action Button (right) with fixed height
-        card_ui.horizontal(|ui| {
-            ui.set_height(26.0);
-            ui.label(
-                RichText::new(&font.family)
-                    .font(FontId::proportional(16.0))
-                    .strong()
-                    .color(AntigravityTheme::TEXT_PRIMARY),
-            );
-
-            let btn_width = 96.0;
-            let available_space = ui.available_width() - btn_width;
-            if available_space > 0.0 {
-                ui.add_space(available_space);
-            }
-
-            match &current_state {
-                Some(InstallState::Downloading) => {
-                    let btn = egui::Button::new(
-                        RichText::new("⏳ Downloading")
-                            .font(FontId::proportional(10.5))
-                            .color(AntigravityTheme::IRIS_VIOLET),
-                    )
-                    .min_size(vec2(btn_width, 24.0))
-                    .fill(AntigravityTheme::TINT_VIOLET)
-                    .stroke(Stroke::new(1.0, AntigravityTheme::IRIS_VIOLET))
-                    .corner_radius(CornerRadius::same(12));
-                    ui.add_enabled(false, btn);
+                let btn_width = 96.0;
+                let available_space = ui.available_width() - btn_width;
+                if available_space > 0.0 {
+                    ui.add_space(available_space);
                 }
-                Some(InstallState::Installing) => {
-                    let btn = egui::Button::new(
-                        RichText::new("⚡ Installing")
-                            .font(FontId::proportional(10.5))
-                            .color(AntigravityTheme::IRIS_CYAN),
-                    )
-                    .min_size(vec2(btn_width, 24.0))
-                    .fill(AntigravityTheme::TINT_CYAN)
-                    .stroke(Stroke::new(1.0, AntigravityTheme::IRIS_CYAN))
-                    .corner_radius(CornerRadius::same(12));
-                    ui.add_enabled(false, btn);
-                }
-                Some(InstallState::Error(err)) => {
-                    let retry_btn = egui::Button::new(
-                        RichText::new("↻ Retry")
-                            .font(FontId::proportional(10.5))
-                            .color(AntigravityTheme::ERROR_ROSE),
-                    )
-                    .min_size(vec2(btn_width, 24.0))
-                    .fill(AntigravityTheme::CONTROL_BG)
-                    .stroke(Stroke::new(1.0, AntigravityTheme::ERROR_ROSE))
-                    .corner_radius(CornerRadius::same(12));
 
-                    if ui.add(retry_btn).on_hover_text(err).clicked() {
-                        let _ = self.tx_worker.send(WorkerCmd::InstallFont {
-                            id: font.id.clone(),
-                            family: font.family.clone(),
-                        });
+                match &current_state {
+                    Some(InstallState::Downloading) => {
+                        let btn = egui::Button::new(
+                            RichText::new("⏳ Downloading")
+                                .font(FontId::proportional(10.5))
+                                .color(AntigravityTheme::IRIS_VIOLET),
+                        )
+                        .min_size(vec2(btn_width, 24.0))
+                        .fill(AntigravityTheme::TINT_VIOLET)
+                        .stroke(Stroke::new(1.0, AntigravityTheme::IRIS_VIOLET))
+                        .corner_radius(CornerRadius::same(12));
+                        ui.add_enabled(false, btn);
+                    }
+                    Some(InstallState::Installing) => {
+                        let btn = egui::Button::new(
+                            RichText::new("⚡ Installing")
+                                .font(FontId::proportional(10.5))
+                                .color(AntigravityTheme::IRIS_CYAN),
+                        )
+                        .min_size(vec2(btn_width, 24.0))
+                        .fill(AntigravityTheme::TINT_CYAN)
+                        .stroke(Stroke::new(1.0, AntigravityTheme::IRIS_CYAN))
+                        .corner_radius(CornerRadius::same(12));
+                        ui.add_enabled(false, btn);
+                    }
+                    Some(InstallState::Error(err)) => {
+                        let retry_btn = egui::Button::new(
+                            RichText::new("↻ Retry")
+                                .font(FontId::proportional(10.5))
+                                .color(AntigravityTheme::ERROR_ROSE),
+                        )
+                        .min_size(vec2(btn_width, 24.0))
+                        .fill(AntigravityTheme::CONTROL_BG)
+                        .stroke(Stroke::new(1.0, AntigravityTheme::ERROR_ROSE))
+                        .corner_radius(CornerRadius::same(12));
+
+                        if ui.add(retry_btn).on_hover_text(err).clicked() {
+                            let _ = self.tx_worker.send(WorkerCmd::InstallFont {
+                                id: font.id.clone(),
+                                family: font.family.clone(),
+                            });
+                        }
+                    }
+                    _ if is_installed => {
+                        let btn = egui::Button::new(
+                            RichText::new("✓ Installed")
+                                .font(FontId::proportional(10.5))
+                                .strong()
+                                .color(AntigravityTheme::SUCCESS_MINT),
+                        )
+                        .min_size(vec2(btn_width, 24.0))
+                        .fill(AntigravityTheme::TINT_SUCCESS)
+                        .stroke(Stroke::new(1.0, AntigravityTheme::SUCCESS_MINT))
+                        .corner_radius(CornerRadius::same(12));
+
+                        if ui
+                            .add(btn)
+                            .on_hover_text("Click to re-install or repair font in Windows")
+                            .clicked()
+                        {
+                            let _ = self.tx_worker.send(WorkerCmd::InstallFont {
+                                id: font.id.clone(),
+                                family: font.family.clone(),
+                            });
+                        }
+                    }
+                    _ => {
+                        let btn = egui::Button::new(
+                            RichText::new("↓ Install")
+                                .font(FontId::proportional(11.0))
+                                .strong()
+                                .color(Color32::from_rgb(10, 14, 22)),
+                        )
+                        .min_size(vec2(btn_width, 24.0))
+                        .fill(AntigravityTheme::IRIS_CYAN)
+                        .corner_radius(CornerRadius::same(12));
+
+                        if ui.add(btn).clicked() {
+                            let _ = self.tx_worker.send(WorkerCmd::InstallFont {
+                                id: font.id.clone(),
+                                family: font.family.clone(),
+                            });
+                        }
                     }
                 }
-                _ if is_installed => {
-                    let btn = egui::Button::new(
-                        RichText::new("✓ Installed")
-                            .font(FontId::proportional(10.5))
-                            .strong()
-                            .color(AntigravityTheme::SUCCESS_MINT),
-                    )
-                    .min_size(vec2(btn_width, 24.0))
-                    .fill(AntigravityTheme::TINT_SUCCESS)
-                    .stroke(Stroke::new(1.0, AntigravityTheme::SUCCESS_MINT))
-                    .corner_radius(CornerRadius::same(12));
+            });
 
-                    if ui
-                        .add(btn)
-                        .on_hover_text("Click to re-install or repair font in Windows")
-                        .clicked()
-                    {
-                        let _ = self.tx_worker.send(WorkerCmd::InstallFont {
-                            id: font.id.clone(),
-                            family: font.family.clone(),
-                        });
-                    }
-                }
-                _ => {
-                    let btn = egui::Button::new(
-                        RichText::new("↓ Install")
-                            .font(FontId::proportional(11.0))
-                            .strong()
-                            .color(Color32::from_rgb(10, 14, 22)),
-                    )
-                    .min_size(vec2(btn_width, 24.0))
-                    .fill(AntigravityTheme::IRIS_CYAN)
-                    .corner_radius(CornerRadius::same(12));
+            card_ui.add_space(4.0);
 
-                    if ui.add(btn).clicked() {
-                        let _ = self.tx_worker.send(WorkerCmd::InstallFont {
-                            id: font.id.clone(),
-                            family: font.family.clone(),
-                        });
-                    }
-                }
-            }
-        });
-
-        card_ui.add_space(4.0);
-
-        // Row 2: Metadata Badges (crisp pill outlines with soft alpha tint)
-        card_ui.horizontal(|ui| {
-            ui.set_height(20.0);
-            AntigravityTheme::render_badge(
-                ui,
-                &font.category.to_uppercase(),
-                AntigravityTheme::IRIS_CYAN,
-                AntigravityTheme::TINT_CYAN,
-                AntigravityTheme::IRIS_CYAN,
-            );
-
-            ui.add_space(2.0);
-            let variants_count = font.variants.len();
-            let style_str = if variants_count == 1 {
-                "1 STYLE".to_string()
-            } else {
-                format!("{variants_count} STYLES")
-            };
-            AntigravityTheme::render_badge(
-                ui,
-                &style_str,
-                AntigravityTheme::IRIS_VIOLET,
-                AntigravityTheme::TINT_VIOLET,
-                AntigravityTheme::IRIS_VIOLET,
-            );
-
-            if font.popularity > 0 {
-                ui.add_space(2.0);
+            // Row 2: Metadata Badges (crisp pill outlines with soft alpha tint)
+            card_ui.horizontal(|ui| {
+                ui.set_height(20.0);
                 AntigravityTheme::render_badge(
                     ui,
-                    &format!("#{}", font.popularity),
-                    AntigravityTheme::IRIS_PINK,
-                    AntigravityTheme::TINT_PINK,
-                    AntigravityTheme::IRIS_PINK,
+                    &font.category.to_uppercase(),
+                    AntigravityTheme::IRIS_CYAN,
+                    AntigravityTheme::TINT_CYAN,
+                    AntigravityTheme::IRIS_CYAN,
                 );
-            }
+
+                ui.add_space(3.0);
+                let variants_count = font.variants.len();
+                let style_str = if variants_count == 1 {
+                    "1 STYLE".to_string()
+                } else {
+                    format!("{variants_count} STYLES")
+                };
+                AntigravityTheme::render_badge(
+                    ui,
+                    &style_str,
+                    AntigravityTheme::IRIS_VIOLET,
+                    AntigravityTheme::TINT_VIOLET,
+                    AntigravityTheme::IRIS_VIOLET,
+                );
+
+                if font.popularity > 0 {
+                    ui.add_space(3.0);
+                    AntigravityTheme::render_badge(
+                        ui,
+                        &format!("#{}", font.popularity),
+                        AntigravityTheme::IRIS_PINK,
+                        AntigravityTheme::TINT_PINK,
+                        AntigravityTheme::IRIS_PINK,
+                    );
+                }
+            });
+
+            card_ui.add_space(8.0);
+
+            // Subtle divider line
+            let div_min = card_ui.cursor().min;
+            let div_rect = Rect::from_min_size(div_min, vec2(card_ui.available_width(), 1.0));
+            card_ui.painter().rect_filled(div_rect, CornerRadius::ZERO, AntigravityTheme::BORDER_IDLE);
+            card_ui.add_space(8.0);
+
+            // Row 3: Specimen Typography Preview Line rendered with real font glyphs
+            let is_active = self.active_fonts.contains(&font.id);
+            let preview_family = if is_active {
+                egui::FontFamily::Name(Arc::from(font.id.as_str()))
+            } else {
+                if !self.requested_previews.contains(&font.id) {
+                    self.requested_previews.insert(font.id.clone());
+                    let _ = self.tx_worker.send(WorkerCmd::FetchPreview {
+                        id: font.id.clone(),
+                        family: font.family.clone(),
+                    });
+                }
+                egui::FontFamily::Proportional
+            };
+
+            let preview_text = if self.preview_text.trim().is_empty() {
+                "The quick brown fox jumps over the lazy dog"
+            } else {
+                &self.preview_text
+            };
+
+            card_ui.horizontal(|ui| {
+                ui.label(
+                    RichText::new(preview_text)
+                        .font(FontId::new(self.preview_size, preview_family))
+                        .color(AntigravityTheme::TEXT_PRIMARY),
+                );
+            });
         });
-
-        card_ui.add_space(6.0);
-
-        // Divider
-        let div_rect = Rect::from_min_size(card_ui.cursor().min, vec2(card_ui.available_width(), 1.0));
-        card_ui.painter().rect_filled(div_rect, CornerRadius::ZERO, AntigravityTheme::BORDER_IDLE);
-        card_ui.add_space(6.0);
-
-        // Row 3: Specimen Typography Preview Line rendered with real font glyphs
-        let is_active = self.active_fonts.contains(&font.id);
-        let preview_family = if is_active {
-            egui::FontFamily::Name(Arc::from(font.id.as_str()))
-        } else {
-            if !self.requested_previews.contains(&font.id) {
-                self.requested_previews.insert(font.id.clone());
-                let _ = self.tx_worker.send(WorkerCmd::FetchPreview {
-                    id: font.id.clone(),
-                    family: font.family.clone(),
-                });
-            }
-            egui::FontFamily::Proportional
-        };
-
-        let preview_text = if self.preview_text.trim().is_empty() {
-            "The quick brown fox jumps over the lazy dog"
-        } else {
-            &self.preview_text
-        };
-
-        card_ui.add(
-            egui::Label::new(
-                RichText::new(preview_text)
-                    .font(FontId::new(self.preview_size, preview_family))
-                    .color(AntigravityTheme::TEXT_PRIMARY),
-            )
-            .truncate(),
-        );
     }
 
     /// Renders scrollable font catalog in a balanced responsive multi-column grid
@@ -819,7 +818,7 @@ impl AntigravityFontsApp {
         let num_cols = (((available_w + spacing) / (min_col_w + spacing)).floor() as usize).max(1);
         let col_w = ((available_w - (num_cols - 1) as f32 * spacing) / num_cols as f32).max(280.0);
 
-        let card_height = (self.preview_size * 1.35 + 98.0).max(136.0);
+        let card_height = (self.preview_size * 1.5 + 104.0).max(150.0);
         let row_height = card_height + spacing;
         let num_rows = (total_count + num_cols - 1) / num_cols;
 
