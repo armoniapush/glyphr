@@ -23,9 +23,10 @@ fn main() -> eframe::Result<()> {
 
     let native_options = eframe::NativeOptions {
         viewport: ViewportBuilder::default()
-            .with_inner_size([940.0, 740.0])
+            .with_inner_size([880.0, 680.0])
             .with_min_inner_size([720.0, 520.0])
-            .with_title("Antigravity Fonts — Google Fonts Desktop Engine")
+            .with_title("Antigravity Fonts")
+            .with_decorations(false)
             .with_visible(true)
             .with_active(true),
         ..Default::default()

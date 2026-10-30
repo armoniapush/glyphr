@@ -8,7 +8,9 @@ pub struct Material3Theme;
 
 impl Material3Theme {
     // 8dp Grid Spacing Tokens
+    #[allow(dead_code)]
     pub const SPACE_XS: f32 = 4.0;
+    #[allow(dead_code)]
     pub const SPACE_SM: f32 = 8.0;
     pub const SPACE_MD: f32 = 16.0;
     pub const SPACE_LG: f32 = 24.0;
