@@ -1,9 +1,9 @@
 use crate::catalog::CatalogClient;
 use crate::installer::FontInstaller;
 use crate::models::{CategoryFilter, FontItem, InstallState};
-use crate::theme::AntigravityTheme;
+use crate::theme::Material3Theme;
 use egui::{
-    vec2, Align, Align2, Color32, CornerRadius, FontId, Layout, Margin, Pos2, Rect, RichText,
+    vec2, Align, Align2, CornerRadius, FontId, Layout, Margin, Pos2, Rect, RichText,
     ScrollArea, Sense, Stroke, StrokeKind, Ui,
 };
 use std::collections::{HashMap, HashSet};
@@ -54,7 +54,7 @@ pub struct AntigravityFontsApp {
 
 impl AntigravityFontsApp {
     pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
-        AntigravityTheme::apply(&cc.egui_ctx);
+        Material3Theme::apply(&cc.egui_ctx);
 
         let (tx_worker, rx_worker) = channel::<WorkerCmd>();
         let (tx_ui, rx_ui) = channel::<WorkerEvent>();
@@ -163,7 +163,7 @@ impl AntigravityFontsApp {
             search_query: String::new(),
             selected_category: CategoryFilter::All,
             preview_text: "DANIELDOBLES".to_string(),
-            preview_size: 24.0,
+            preview_size: 26.0,
             status_message: "Initializing Google Fonts catalog...".to_string(),
             is_loading_catalog: true,
             tx_worker,
@@ -290,46 +290,56 @@ impl AntigravityFontsApp {
         }
     }
 
-    /// Renders the top Antigravity header bar
+    /// Renders the top Material 3 App Bar
     fn render_header(&mut self, ui: &mut Ui) {
         ui.horizontal(|ui| {
-            // Antigravity Logo Badge
-            let (rect, _) = ui.allocate_exact_size(vec2(38.0, 38.0), Sense::hover());
+            // M3 Logo Mark with glowing container
+            let (rect, _) = ui.allocate_exact_size(vec2(42.0, 42.0), Sense::hover());
             let painter = ui.painter();
             painter.rect_filled(
                 rect,
-                CornerRadius::same(10),
-                Color32::from_rgb(22, 28, 42),
+                CornerRadius::same(14),
+                Material3Theme::SURFACE_CONTAINER_HIGH,
             );
             painter.rect_stroke(
                 rect,
-                CornerRadius::same(10),
-                Stroke::new(1.0, AntigravityTheme::BORDER_FOCUS),
+                CornerRadius::same(14),
+                Stroke::new(1.5, Material3Theme::PRIMARY),
                 StrokeKind::Inside,
             );
             painter.text(
                 rect.center(),
                 Align2::CENTER_CENTER,
                 "AG",
-                FontId::proportional(17.0),
-                AntigravityTheme::ACCENT_CYAN,
+                FontId::proportional(18.0),
+                Material3Theme::PRIMARY,
             );
 
-            ui.add_space(8.0);
+            ui.add_space(10.0);
 
             ui.vertical(|ui| {
                 ui.horizontal(|ui| {
                     ui.label(
                         RichText::new("Antigravity Fonts")
-                            .font(FontId::proportional(19.0))
+                            .font(FontId::proportional(20.0))
                             .strong()
-                            .color(AntigravityTheme::TEXT_PRIMARY),
+                            .color(Material3Theme::ON_SURFACE),
+                    );
+
+                    // Material 3 Tonal Badge
+                    let m3_badge = RichText::new("Material 3")
+                        .font(FontId::proportional(11.0))
+                        .color(Material3Theme::PRIMARY);
+                    ui.label(
+                        egui::WidgetText::RichText(m3_badge).background_color(
+                            Material3Theme::PRIMARY_CONTAINER,
+                        ),
                     );
 
                     let status_color = if self.is_loading_catalog {
-                        AntigravityTheme::ACCENT_CYAN
+                        Material3Theme::PRIMARY
                     } else {
-                        AntigravityTheme::SUCCESS_GREEN
+                        Material3Theme::SUCCESS
                     };
 
                     ui.label(
@@ -340,21 +350,22 @@ impl AntigravityFontsApp {
                 });
 
                 ui.label(
-                    RichText::new("Ultra-lightweight Google Fonts discovery & 1-click silent installer")
-                        .font(FontId::proportional(11.0))
-                        .color(AntigravityTheme::TEXT_MUTED),
+                    RichText::new("Material You typography explorer & silent font installer")
+                        .font(FontId::proportional(12.0))
+                        .color(Material3Theme::ON_SURFACE_VARIANT),
                 );
             });
 
             ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
                 let refresh_btn = egui::Button::new(
                     RichText::new("⟳ Sync Catalog")
-                        .font(FontId::proportional(12.0))
-                        .color(AntigravityTheme::TEXT_PRIMARY),
+                        .font(FontId::proportional(13.0))
+                        .strong()
+                        .color(Material3Theme::ON_SURFACE),
                 )
-                .fill(AntigravityTheme::BG_CARD)
-                .stroke(Stroke::new(1.0, AntigravityTheme::BORDER_SUBTLE))
-                .corner_radius(CornerRadius::same(8));
+                .fill(Material3Theme::SURFACE_CONTAINER_HIGH)
+                .stroke(Stroke::new(1.0, Material3Theme::OUTLINE_VARIANT))
+                .corner_radius(CornerRadius::same(20));
 
                 if ui.add(refresh_btn).clicked() {
                     self.is_loading_catalog = true;
@@ -365,60 +376,62 @@ impl AntigravityFontsApp {
         });
     }
 
-    /// Renders search bar and category chips
+    /// Renders M3 Floating Pill Search Bar and Filter Chips
     fn render_search_and_filters(&mut self, ui: &mut Ui) {
         ui.add_space(8.0);
 
-        // Search bar
+        // M3 Floating Search Bar (52px height, 26px radius)
         ui.horizontal(|ui| {
             let search_rect = ui.available_rect_before_wrap();
-            let height = 38.0;
+            let height = 50.0;
             let (rect, _) = ui.allocate_exact_size(vec2(search_rect.width(), height), Sense::hover());
 
-            // Paint background container and search icon
+            // Paint M3 pill search container
             ui.painter().rect_filled(
                 rect,
-                CornerRadius::same(10),
-                AntigravityTheme::BG_INPUT,
+                CornerRadius::same(25),
+                Material3Theme::SURFACE_CONTAINER_HIGHEST,
             );
             ui.painter().rect_stroke(
                 rect,
-                CornerRadius::same(10),
-                Stroke::new(1.0, AntigravityTheme::BORDER_SUBTLE),
+                CornerRadius::same(25),
+                Stroke::new(1.0, Material3Theme::OUTLINE_VARIANT),
                 StrokeKind::Inside,
             );
+
+            // Leading M3 search icon
             ui.painter().text(
-                Pos2::new(rect.min.x + 16.0, rect.center().y),
+                Pos2::new(rect.min.x + 20.0, rect.center().y),
                 Align2::LEFT_CENTER,
                 "🔍",
-                FontId::proportional(14.0),
-                AntigravityTheme::TEXT_MUTED,
+                FontId::proportional(16.0),
+                Material3Theme::ON_SURFACE_VARIANT,
             );
 
             // Inner TextEdit
             let inner_rect = Rect::from_min_max(
-                Pos2::new(rect.min.x + 40.0, rect.min.y + 2.0),
-                Pos2::new(rect.max.x - 40.0, rect.max.y - 2.0),
+                Pos2::new(rect.min.x + 50.0, rect.min.y + 4.0),
+                Pos2::new(rect.max.x - 50.0, rect.max.y - 4.0),
             );
 
             let mut child_ui = ui.new_child(egui::UiBuilder::new().max_rect(inner_rect));
             let response = child_ui.add(
                 egui::TextEdit::singleline(&mut self.search_query)
-                    .hint_text("Search by family name, category, or style (e.g. Inter, Roboto, Space, Serif)...")
+                    .hint_text("Search Google Fonts by family, category or style (e.g. Inter, Roboto, Space)...")
                     .frame(false)
-                    .font(FontId::proportional(14.0))
-                    .text_color(AntigravityTheme::TEXT_PRIMARY),
+                    .font(FontId::proportional(15.0))
+                    .text_color(Material3Theme::ON_SURFACE),
             );
 
             if response.changed() {
                 self.apply_filters();
             }
 
-            // Clear button if search has text
+            // Trailing clear button
             if !self.search_query.is_empty() {
                 let clear_rect = Rect::from_center_size(
-                    Pos2::new(rect.max.x - 20.0, rect.center().y),
-                    vec2(24.0, 24.0),
+                    Pos2::new(rect.max.x - 26.0, rect.center().y),
+                    vec2(28.0, 28.0),
                 );
                 let clear_resp = ui.allocate_rect(clear_rect, Sense::click());
                 if clear_resp.clicked() {
@@ -429,15 +442,15 @@ impl AntigravityFontsApp {
                     clear_rect.center(),
                     Align2::CENTER_CENTER,
                     "✕",
-                    FontId::proportional(12.0),
-                    AntigravityTheme::TEXT_MUTED,
+                    FontId::proportional(13.0),
+                    Material3Theme::ON_SURFACE_VARIANT,
                 );
             }
         });
 
         ui.add_space(8.0);
 
-        // Category pills
+        // M3 Filter Chips Carousel
         ui.horizontal_wrapped(|ui| {
             let categories = [
                 CategoryFilter::All,
@@ -457,28 +470,34 @@ impl AntigravityFontsApp {
                     cat.as_str().to_string()
                 };
 
+                let chip_text = if is_selected {
+                    format!("✓ {label}")
+                } else {
+                    label
+                };
+
                 let (bg_color, stroke_color, text_color) = if is_selected {
                     (
-                        Color32::from_rgb(28, 42, 64),
-                        AntigravityTheme::BORDER_FOCUS,
-                        AntigravityTheme::ACCENT_CYAN,
+                        Material3Theme::PRIMARY_CONTAINER,
+                        Material3Theme::PRIMARY,
+                        Material3Theme::ON_PRIMARY_CONTAINER,
                     )
                 } else {
                     (
-                        AntigravityTheme::BG_BADGE,
-                        AntigravityTheme::BORDER_SUBTLE,
-                        AntigravityTheme::TEXT_MUTED,
+                        Material3Theme::SURFACE_CONTAINER,
+                        Material3Theme::OUTLINE_VARIANT,
+                        Material3Theme::ON_SURFACE_VARIANT,
                     )
                 };
 
                 let btn = egui::Button::new(
-                    RichText::new(label)
-                        .font(FontId::proportional(12.0))
+                    RichText::new(chip_text)
+                        .font(FontId::proportional(13.0))
                         .color(text_color),
                 )
                 .fill(bg_color)
                 .stroke(Stroke::new(1.0, stroke_color))
-                .corner_radius(CornerRadius::same(16));
+                .corner_radius(CornerRadius::same(18));
 
                 if ui.add(btn).clicked() {
                     self.selected_category = cat;
@@ -488,36 +507,38 @@ impl AntigravityFontsApp {
         });
     }
 
-    /// Renders customizable live preview text bar
+    /// Renders M3 Preview Dock Toolbar
     fn render_preview_controls(&mut self, ui: &mut Ui) {
-        ui.add_space(4.0);
+        ui.add_space(6.0);
         egui::Frame::NONE
-            .fill(AntigravityTheme::BG_SURFACE)
-            .stroke(Stroke::new(1.0, AntigravityTheme::BORDER_SUBTLE))
-            .corner_radius(CornerRadius::same(8))
-            .inner_margin(Margin::symmetric(12, 8))
+            .fill(Material3Theme::SURFACE_CONTAINER_LOW)
+            .stroke(Stroke::new(1.0, Material3Theme::OUTLINE_VARIANT))
+            .corner_radius(CornerRadius::same(16))
+            .inner_margin(Margin::symmetric(18, 10))
             .show(ui, |ui| {
                 ui.horizontal(|ui| {
                     ui.label(
                         RichText::new("Preview Text:")
-                            .font(FontId::proportional(12.0))
-                            .color(AntigravityTheme::TEXT_MUTED),
+                            .font(FontId::proportional(13.0))
+                            .color(Material3Theme::ON_SURFACE_VARIANT),
                     );
 
                     ui.add(
                         egui::TextEdit::singleline(&mut self.preview_text)
-                            .desired_width(ui.available_width() - 200.0)
-                            .font(FontId::proportional(13.0)),
+                            .desired_width(ui.available_width() - 220.0)
+                            .font(FontId::proportional(14.0)),
                     );
+
+                    ui.add_space(8.0);
 
                     ui.label(
                         RichText::new("Size:")
-                            .font(FontId::proportional(12.0))
-                            .color(AntigravityTheme::TEXT_MUTED),
+                            .font(FontId::proportional(13.0))
+                            .color(Material3Theme::ON_SURFACE_VARIANT),
                     );
 
                     ui.add(
-                        egui::Slider::new(&mut self.preview_size, 14.0..=48.0)
+                        egui::Slider::new(&mut self.preview_size, 16.0..=56.0)
                             .suffix("px")
                             .show_value(true),
                     );
@@ -525,26 +546,26 @@ impl AntigravityFontsApp {
             });
     }
 
-    /// Renders an individual font card
+    /// Renders an individual Material 3 Card
     fn render_font_card(&mut self, ui: &mut Ui, font: &FontItem) {
         let is_installed = self.installed_families.contains(&font.id);
         let current_state = self.font_states.get(&font.id).cloned();
 
-        let border_color = match &current_state {
+        let border_stroke = match &current_state {
             Some(InstallState::Downloading) | Some(InstallState::Installing) => {
-                AntigravityTheme::BORDER_FOCUS
+                Stroke::new(1.5, Material3Theme::PRIMARY)
             }
-            Some(InstallState::Installed) => AntigravityTheme::SUCCESS_GREEN,
-            Some(InstallState::Error(_)) => AntigravityTheme::ERROR_RED,
-            _ if is_installed => Color32::from_rgb(20, 83, 45), // Forest green border
-            _ => AntigravityTheme::BORDER_SUBTLE,
+            Some(InstallState::Installed) => Stroke::new(1.5, Material3Theme::SUCCESS),
+            Some(InstallState::Error(_)) => Stroke::new(1.5, Material3Theme::ERROR),
+            _ if is_installed => Stroke::new(1.0, Material3Theme::SUCCESS_CONTAINER),
+            _ => Stroke::new(1.0, Material3Theme::OUTLINE_VARIANT),
         };
 
         egui::Frame::NONE
-            .fill(AntigravityTheme::BG_CARD)
-            .stroke(Stroke::new(1.0, border_color))
-            .corner_radius(CornerRadius::same(10))
-            .inner_margin(Margin::same(14))
+            .fill(Material3Theme::SURFACE_CONTAINER)
+            .stroke(border_stroke)
+            .corner_radius(CornerRadius::same(16))
+            .inner_margin(Margin::symmetric(20, 16))
             .show(ui, |ui| {
                 // Header row: Family name, metadata badges, install button
                 ui.horizontal(|ui| {
@@ -552,22 +573,24 @@ impl AntigravityFontsApp {
                         ui.horizontal(|ui| {
                             ui.label(
                                 RichText::new(&font.family)
-                                    .font(FontId::proportional(17.0))
+                                    .font(FontId::proportional(19.0))
                                     .strong()
-                                    .color(AntigravityTheme::TEXT_PRIMARY),
+                                    .color(Material3Theme::ON_SURFACE),
                             );
 
-                            // Category pill badge
+                            ui.add_space(4.0);
+
+                            // Category M3 Tonal Badge
                             let cat_badge = RichText::new(&font.category)
-                                .font(FontId::proportional(10.0))
-                                .color(AntigravityTheme::ACCENT_CYAN);
+                                .font(FontId::proportional(11.0))
+                                .color(Material3Theme::ON_PRIMARY_CONTAINER);
                             ui.label(
                                 egui::WidgetText::RichText(cat_badge).background_color(
-                                    Color32::from_rgba_premultiplied(56, 189, 248, 25),
+                                    Material3Theme::PRIMARY_CONTAINER,
                                 ),
                             );
 
-                            // Variants pill badge
+                            // Variants M3 Tonal Badge
                             let variants_count = font.variants.len();
                             let style_str = if variants_count == 1 {
                                 "1 style".to_string()
@@ -575,63 +598,66 @@ impl AntigravityFontsApp {
                                 format!("{variants_count} styles")
                             };
                             let styles_badge = RichText::new(style_str)
-                                .font(FontId::proportional(10.0))
-                                .color(AntigravityTheme::TEXT_MUTED);
+                                .font(FontId::proportional(11.0))
+                                .color(Material3Theme::ON_SURFACE_VARIANT);
                             ui.label(
-                                egui::WidgetText::RichText(styles_badge)
-                                    .background_color(AntigravityTheme::BG_BADGE),
+                                egui::WidgetText::RichText(styles_badge).background_color(
+                                    Material3Theme::SURFACE_CONTAINER_HIGH,
+                                ),
                             );
 
                             // Popularity rank badge
                             if font.popularity > 0 {
                                 let rank_text = format!("#{}", font.popularity);
                                 let rank_badge = RichText::new(rank_text)
-                                    .font(FontId::proportional(10.0))
-                                    .color(AntigravityTheme::ACCENT_INDIGO);
+                                    .font(FontId::proportional(11.0))
+                                    .color(Material3Theme::ON_SECONDARY_CONTAINER);
                                 ui.label(
                                     egui::WidgetText::RichText(rank_badge).background_color(
-                                        Color32::from_rgba_premultiplied(99, 102, 241, 25),
+                                        Material3Theme::SECONDARY_CONTAINER,
                                     ),
                                 );
                             }
                         });
                     });
 
-                    // Action Button on the right
+                    // M3 Pill Action Button on the right
                     ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
                         match &current_state {
                             Some(InstallState::Downloading) => {
                                 let btn = egui::Button::new(
                                     RichText::new("⏳ Downloading...")
-                                        .font(FontId::proportional(12.0))
-                                        .color(AntigravityTheme::ACCENT_CYAN),
+                                        .font(FontId::proportional(13.0))
+                                        .strong()
+                                        .color(Material3Theme::ON_PRIMARY_CONTAINER),
                                 )
-                                .fill(Color32::from_rgb(22, 33, 49))
-                                .stroke(Stroke::new(1.0, AntigravityTheme::BORDER_FOCUS))
-                                .corner_radius(CornerRadius::same(8));
+                                .fill(Material3Theme::PRIMARY_CONTAINER)
+                                .stroke(Stroke::new(1.0, Material3Theme::PRIMARY))
+                                .corner_radius(CornerRadius::same(20));
                                 ui.add_enabled(false, btn);
                             }
                             Some(InstallState::Installing) => {
                                 let btn = egui::Button::new(
                                     RichText::new("⚡ Registering...")
-                                        .font(FontId::proportional(12.0))
-                                        .color(AntigravityTheme::ACCENT_INDIGO),
+                                        .font(FontId::proportional(13.0))
+                                        .strong()
+                                        .color(Material3Theme::ON_SECONDARY_CONTAINER),
                                 )
-                                .fill(Color32::from_rgb(28, 26, 50))
-                                .stroke(Stroke::new(1.0, AntigravityTheme::BORDER_ACTIVE))
-                                .corner_radius(CornerRadius::same(8));
+                                .fill(Material3Theme::SECONDARY_CONTAINER)
+                                .stroke(Stroke::new(1.0, Material3Theme::SECONDARY))
+                                .corner_radius(CornerRadius::same(20));
                                 ui.add_enabled(false, btn);
                             }
                             Some(InstallState::Error(err)) => {
                                 ui.horizontal(|ui| {
                                     let retry_btn = egui::Button::new(
                                         RichText::new("↻ Retry")
-                                            .font(FontId::proportional(11.0))
-                                            .color(AntigravityTheme::ERROR_RED),
+                                            .font(FontId::proportional(12.0))
+                                            .color(Material3Theme::ON_ERROR_CONTAINER),
                                     )
-                                    .fill(Color32::from_rgb(45, 18, 18))
-                                    .stroke(Stroke::new(1.0, AntigravityTheme::ERROR_RED))
-                                    .corner_radius(CornerRadius::same(6));
+                                    .fill(Material3Theme::ERROR_CONTAINER)
+                                    .stroke(Stroke::new(1.0, Material3Theme::ERROR))
+                                    .corner_radius(CornerRadius::same(16));
 
                                     if ui.add(retry_btn).clicked() {
                                         let _ = self.tx_worker.send(WorkerCmd::InstallFont {
@@ -642,23 +668,23 @@ impl AntigravityFontsApp {
 
                                     ui.label(
                                         RichText::new(format!("Error: {err}"))
-                                            .font(FontId::proportional(10.0))
-                                            .color(AntigravityTheme::ERROR_RED),
+                                            .font(FontId::proportional(11.0))
+                                            .color(Material3Theme::ERROR),
                                     );
                                 });
                             }
                             _ if is_installed => {
                                 let btn = egui::Button::new(
                                     RichText::new("✓ Installed")
-                                        .font(FontId::proportional(12.0))
+                                        .font(FontId::proportional(13.0))
                                         .strong()
-                                        .color(AntigravityTheme::SUCCESS_GREEN),
+                                        .color(Material3Theme::ON_SUCCESS_CONTAINER),
                                 )
-                                .fill(AntigravityTheme::SUCCESS_BG)
-                                .stroke(Stroke::new(1.0, AntigravityTheme::SUCCESS_GREEN))
-                                .corner_radius(CornerRadius::same(8));
+                                .fill(Material3Theme::SUCCESS_CONTAINER)
+                                .stroke(Stroke::new(1.0, Material3Theme::SUCCESS))
+                                .corner_radius(CornerRadius::same(20));
 
-                                if ui.add(btn).on_hover_text("Re-install or update this font").clicked() {
+                                if ui.add(btn).on_hover_text("Re-install or update this font in Windows").clicked() {
                                     let _ = self.tx_worker.send(WorkerCmd::InstallFont {
                                         id: font.id.clone(),
                                         family: font.family.clone(),
@@ -666,15 +692,15 @@ impl AntigravityFontsApp {
                                 }
                             }
                             _ => {
+                                // M3 Filled Primary Pill Button
                                 let btn = egui::Button::new(
                                     RichText::new("↓ Install Font")
-                                        .font(FontId::proportional(12.0))
+                                        .font(FontId::proportional(13.0))
                                         .strong()
-                                        .color(Color32::WHITE),
+                                        .color(Material3Theme::ON_PRIMARY),
                                 )
-                                .fill(Color32::from_rgb(14, 116, 144))
-                                .stroke(Stroke::new(1.0, AntigravityTheme::BORDER_FOCUS))
-                                .corner_radius(CornerRadius::same(8));
+                                .fill(Material3Theme::PRIMARY)
+                                .corner_radius(CornerRadius::same(20));
 
                                 if ui.add(btn).clicked() {
                                     let _ = self.tx_worker.send(WorkerCmd::InstallFont {
@@ -687,7 +713,7 @@ impl AntigravityFontsApp {
                     });
                 });
 
-                ui.add_space(8.0);
+                ui.add_space(12.0);
 
                 // Determine Font Family for preview rendering safely
                 let is_active = self.active_fonts.contains(&font.id);
@@ -714,7 +740,7 @@ impl AntigravityFontsApp {
                 ui.label(
                     RichText::new(preview_text)
                         .font(FontId::new(self.preview_size, preview_family))
-                        .color(AntigravityTheme::TEXT_PRIMARY),
+                        .color(Material3Theme::ON_SURFACE),
                 );
             });
     }
@@ -724,23 +750,23 @@ impl AntigravityFontsApp {
         let total_count = self.filtered_indices.len();
         if total_count == 0 {
             ui.vertical_centered(|ui| {
-                ui.add_space(40.0);
+                ui.add_space(50.0);
                 if self.is_loading_catalog {
                     ui.label(
                         RichText::new("Connecting to Google Fonts catalog...")
-                            .font(FontId::proportional(16.0))
-                            .color(AntigravityTheme::ACCENT_CYAN),
+                            .font(FontId::proportional(18.0))
+                            .color(Material3Theme::PRIMARY),
                     );
                 } else {
                     ui.label(
                         RichText::new("No fonts matched your search.")
-                            .font(FontId::proportional(16.0))
-                            .color(AntigravityTheme::TEXT_MUTED),
+                            .font(FontId::proportional(18.0))
+                            .color(Material3Theme::ON_SURFACE_VARIANT),
                     );
                     ui.label(
                         RichText::new("Try adjusting your query or selecting 'All' categories.")
-                            .font(FontId::proportional(12.0))
-                            .color(AntigravityTheme::TEXT_FAINT),
+                            .font(FontId::proportional(13.0))
+                            .color(Material3Theme::ON_SURFACE_MUTED),
                     );
                 }
             });
@@ -751,14 +777,14 @@ impl AntigravityFontsApp {
         ui.horizontal(|ui| {
             ui.label(
                 RichText::new(format!("Showing {total_count} font families"))
-                    .font(FontId::proportional(12.0))
-                    .color(AntigravityTheme::TEXT_MUTED),
+                    .font(FontId::proportional(13.0))
+                    .color(Material3Theme::ON_SURFACE_VARIANT),
             );
         });
         ui.add_space(4.0);
 
         // Approximate row height for virtual scrolling
-        let row_height = 110.0;
+        let row_height = 124.0;
         ScrollArea::vertical()
             .auto_shrink([false; 2])
             .show_rows(ui, row_height, total_count, |ui, row_range| {
@@ -766,7 +792,7 @@ impl AntigravityFontsApp {
                     if let Some(&font_idx) = self.filtered_indices.get(i) {
                         if let Some(font) = self.all_fonts.get(font_idx).cloned() {
                             self.render_font_card(ui, &font);
-                            ui.add_space(8.0);
+                            ui.add_space(10.0);
                         }
                     }
                 }
@@ -788,11 +814,11 @@ impl eframe::App for AntigravityFontsApp {
 
         egui::CentralPanel::default().show(ctx, |ui| {
             self.render_header(ui);
-            ui.add_space(6.0);
+            ui.add_space(8.0);
             self.render_search_and_filters(ui);
             ui.add_space(6.0);
             self.render_preview_controls(ui);
-            ui.add_space(6.0);
+            ui.add_space(8.0);
             self.render_font_list(ui);
         });
     }
